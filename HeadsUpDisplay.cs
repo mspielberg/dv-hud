@@ -27,6 +27,8 @@ namespace DvMod.HeadsUpDisplay
             modEntry.OnToggle = OnToggle;
             modEntry.OnUnload = OnUnload;
 
+            DataProviders.Register();
+
             if (SaveLoadController.carsAndJobsLoadingFinished && WorldStreamingInit.IsLoaded)
                 OnLoadingFinished();
             else
@@ -56,8 +58,6 @@ namespace DvMod.HeadsUpDisplay
 
         static void OnLoadingFinished()
         {
-            GenericProviders.Register();
-            LocoProviders.Register();
             behaviourRoot = new GameObject();
             behaviourRoot.AddComponent<Overlay>();
         }
@@ -74,32 +74,39 @@ namespace DvMod.HeadsUpDisplay
 
         public static void DebugLog(string message)
         {
-            if (settings.enableLogging)
+        //    if (settings.enableLogging)
                 mod.Logger.Log(message);
         }
 
         public class Settings : UnityModManager.ModSettings, IDrawable
         {
-            [Draw("Boiler steam generation rate")] public float steamGenerationRate = 0.5f;
-            [Draw("Cutoff wheel gamma")] public float cutoffGamma = 1.9f;
-            [Draw("Max boiler pressure")] public float safetyValveThreshold = 16f;
+            [Draw("Show general info")] private bool showGeneral = true;
+            [Draw("Speed", VisibleOn = "showGeneral|true")] private bool showSpeed = true;
+            public bool ShowSpeed { get => showGeneral && showSpeed; }
+            [Draw("Grade", VisibleOn = "showGeneral|true")] private bool showGrade = true;
+            public bool ShowGrade { get => showGeneral && showGrade; }
+            [Draw("Brake pipe", VisibleOn = "showGeneral|true")] private bool showBrakePipe = true;
+            public bool ShowBrakePipe { get => showGeneral && showBrakePipe; }
+            [Draw("Consist mass", VisibleOn = "showGeneral|true")] private bool showConsistMass = true;
+            public bool ShowConsistMass { get => showGeneral && showConsistMass; }
 
-            [Draw("Enable detailed low-speed simulation")] public bool enableLowSpeedSimulation = true;
-            [Draw("Low-speed simulation transition start", VisibleOn = "enableLowSpeedSimulation|true")]
-            public float lowSpeedTransitionStart = 10f;
-            [Draw("Low-speed simulation transition width", VisibleOn = "enableLowSpeedSimulation|true")]
-            public float lowSpeedTransitionWidth = 5f;
+
+            [Draw("Show locomotive info")] private bool showLoco = true;
+            [Draw("Tractive effort")] private bool showTractiveEffort = true;
+            public bool ShowTractiveEffort { get => showLoco && showTractiveEffort; }
+            [Draw("Adhesion")] private bool showAdhesion = true;
+            public bool ShowAdhesion { get => showLoco && showAdhesion; }
+            [Draw("Slip")] private bool showSlip = true;
+            public bool ShowSlip { get => showLoco && showSlip; }
 
             [Draw("Enable logging")] public bool enableLogging = false;
-            [Draw("Show info overlay")] public bool showInfoOverlay = false;
 
             override public void Save(UnityModManager.ModEntry entry) {
                 Save<Settings>(this, entry);
             }
 
-            public void OnChange() {
-                cutoffGamma = Mathf.Max(cutoffGamma, 0.1f);
-                safetyValveThreshold = Mathf.Clamp(safetyValveThreshold, 0f, 20f);
+            public void OnChange()
+            {
             }
         }
     }

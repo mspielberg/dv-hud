@@ -1,49 +1,44 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace DvMod.HeadsUpDisplay
 {
-    using Provider = Func<TrainCar, float>;
-    using Formatter = Func<float, string>;
-
-    public readonly struct DataProvider
-    {
-        public readonly string label;
-        public readonly Provider provider;
-        public readonly Formatter formatter;
-
-        public DataProvider(string label, Provider provider, Formatter formatter)
-        {
-            this.label = label;
-            this.provider = provider;
-            this.formatter = formatter;
-        }
-    }
-
     static public class Registry
     {
-        static Dictionary<TrainCarType, List<DataProvider>> providers = new Dictionary<TrainCarType, List<DataProvider>>() {
-            {TrainCarType.NotSet, new List<DataProvider>()}
-        };
-        public static void Register(TrainCarType carType, string name, Provider provider, Formatter formatter)
+        static Dictionary<TrainCarType, OrderedDictionary> providers =
+            new Dictionary<TrainCarType, OrderedDictionary>() {
+                { TrainCarType.NotSet, new OrderedDictionary() }
+            };
+
+        public static void Register(TrainCarType carType, DataProvider dp)
         {
-            var dp = new DataProvider(name, provider, formatter);
             if (!providers.ContainsKey(carType))
-                providers.Add(carType, new List<DataProvider>());
-            providers[carType].Add(dp);
+                providers.Add(carType, new OrderedDictionary());
+            providers[carType][dp.Label] = dp;
+            Main.DebugLog($"Registered data provider for {dp.Label}: {Environment.StackTrace}");
+        }
+
+        public static DataProvider GetProvider(TrainCarType carType, string label)
+        {
+            if (providers.ContainsKey(carType))
+            {
+                 var specificProviders = providers[carType];
+                 if (specificProviders.Contains(label))
+                    return (DataProvider)specificProviders[label];
+            }
+            return (DataProvider)providers[TrainCarType.NotSet][label];
         }
 
         public static List<List<DataProvider>> GetProviders(TrainCarType carType)
         {
             var providersForCarType = new List<List<DataProvider>>();
-            List<DataProvider> genericProviders;
-            if (providers.TryGetValue(TrainCarType.NotSet, out genericProviders))
-                providersForCarType.Add(genericProviders);
-            List<DataProvider> specificProviders;
-            if (providers.TryGetValue(carType, out specificProviders))
-                providersForCarType.Add(specificProviders);
+            providersForCarType.Add(new List<DataProvider>(providers[TrainCarType.NotSet].Values.Cast<DataProvider>()));
+            if (providers.ContainsKey(carType))
+                providersForCarType.Add(new List<DataProvider>(providers[carType].Values.Cast<DataProvider>()));
             return providersForCarType;
         }
     }

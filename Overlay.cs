@@ -25,11 +25,13 @@ namespace DvMod.HeadsUpDisplay
                 GUILayout.BeginHorizontal("box");
                 GUILayout.BeginVertical();
                 foreach (var dp in group)
-                    GUILayout.Label(dp.label);
+                    if (dp.Enabled)
+                        GUILayout.Label(dp.Label);
                 GUILayout.EndVertical();
                 GUILayout.BeginVertical();
                 foreach (var dp in group)
-                    GUILayout.Label(dp.formatter(dp.provider(PlayerManager.Car)));
+                    if (dp.Enabled)
+                        GUILayout.Label(dp.GetValue(PlayerManager.Car));
                 GUILayout.EndVertical();
                 GUILayout.EndHorizontal();
             }
