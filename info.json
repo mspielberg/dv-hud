@@ -5,6 +5,6 @@
   "Version": "0.1.0",
   "AssemblyName": "HeadsUpDisplay.dll",
   "EntryMethod": "DvMod.HeadsUpDisplay.Main.Load",
-  "HomePage": "https://www.nexusmods.com/derailvalley/mods/192",
-  "Repository": "https://raw.githubusercontent.com/mspielberg/dv-steamcutoff/master/repository.json"
+  "HomePage": "https://www.nexusmods.com/derailvalley/mods/206",
+  "Repository": "https://raw.githubusercontent.com/mspielberg/dv-hud/master/resources/repository.json"
 }
