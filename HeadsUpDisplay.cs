@@ -74,7 +74,7 @@ namespace DvMod.HeadsUpDisplay
 
         public static void DebugLog(string message)
         {
-        //    if (settings.enableLogging)
+            if (settings.enableLogging)
                 mod.Logger.Log(message);
         }
 
@@ -98,6 +98,9 @@ namespace DvMod.HeadsUpDisplay
             public bool ShowAdhesion { get => showLoco && showAdhesion; }
             [Draw("Slip")] private bool showSlip = true;
             public bool ShowSlip { get => showLoco && showSlip; }
+
+            [Draw("Show car list")] public bool showCarList = true;
+            [Draw("Show wheel strain", VisibleOn = "showCarList|true")] public bool showTrainStress = true;
 
             [Draw("Enable logging")] public bool enableLogging = false;
 
