@@ -1,9 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using UnityEngine;
 
 namespace DvMod.HeadsUpDisplay
 {
@@ -19,7 +16,7 @@ namespace DvMod.HeadsUpDisplay
             if (!providers.ContainsKey(carType))
                 providers.Add(carType, new OrderedDictionary());
             providers[carType][dp.Label] = dp;
-            Main.DebugLog($"Registered data provider for {dp.Label}: {Environment.StackTrace}");
+            Main.DebugLog($"Registered data provider for {dp.Label}");
         }
 
         public static DataProvider GetProvider(TrainCarType carType, string label)
