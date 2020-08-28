@@ -12,7 +12,7 @@ namespace DvMod.HeadsUpDisplay
                 "Speed",
                 () => Main.settings.ShowSpeed,
                 car => Mathf.Abs(car.GetForwardSpeed()) * 3.6f,
-                f => $"{f.ToString("F1")} kph"));
+                f => $"{f.ToString("F1")} km/h"));
             Registry.Register(TrainCarType.NotSet, new QueryDataProvider("Grade",
                 () => Main.settings.ShowGrade,
                 car => {
@@ -30,7 +30,7 @@ namespace DvMod.HeadsUpDisplay
                 "Consist mass",
                 () => Main.settings.ShowConsistMass,
                 car => car.trainset.cars.Sum(c => c.totalMass + CargoTypes.GetCargoMass(c.LoadedCargo, c.LoadedCargoAmount)),
-                f => $"{(f / 1000).ToString("F2")} t"));
+                f => $"{(f / 1000).ToString("F0")} t"));
         }
     }
 }
