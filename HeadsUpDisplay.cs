@@ -41,6 +41,8 @@ namespace DvMod.HeadsUpDisplay
         static void OnGui(UnityModManager.ModEntry modEntry)
         {
             settings.Draw(modEntry);
+            if (GUILayout.Button("Reset position", GUILayout.ExpandWidth(false)))
+                settings.hudPosition = Settings.defaultPosition;
         }
 
         static void OnSaveGui(UnityModManager.ModEntry modEntry)
@@ -81,6 +83,8 @@ namespace DvMod.HeadsUpDisplay
 
         public class Settings : UnityModManager.ModSettings, IDrawable
         {
+            public static Rect defaultPosition = new Rect(10, 10, 0, 0);
+
             [Draw("Show general info")] private bool showGeneral = true;
             [Draw("Speed", VisibleOn = "showGeneral|true")] private bool showSpeed = true;
             public bool ShowSpeed { get => showGeneral && showSpeed; }
@@ -101,9 +105,13 @@ namespace DvMod.HeadsUpDisplay
             public bool ShowSlip { get => showLoco && showSlip; }
 
             [Draw("Show car list")] public bool showCarList = true;
-            [Draw("Show wheel strain", VisibleOn = "showCarList|true")] public bool showTrainStress = true;
+            [Draw("Show wheel strain", VisibleOn = "showCarList|true")] public bool showCarStress = true;
+            [Draw("Show job ID", VisibleOn = "showCarList|true")] public bool showCarJobs = true;
+            [Draw("Show destination", VisibleOn = "showCarList|true")] public bool showCarDestinations = true;
 
             [Draw("Enable logging")] public bool enableLogging = false;
+
+            public Rect hudPosition = defaultPosition;
 
             override public void Save(UnityModManager.ModEntry entry) {
                 Save<Settings>(this, entry);

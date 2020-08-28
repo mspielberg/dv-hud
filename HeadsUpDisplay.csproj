@@ -2,15 +2,20 @@
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
     <RootNamespace>DvMod.HeadsUpDisplay</RootNamespace>
-    <InformationalVersion>0.1.0-2-gb266e5e</InformationalVersion>
+    <InformationalVersion>0.1.0-2-gb266e5e-dirty</InformationalVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <Reference Include="0Harmony"/>
-    <Reference Include="Assembly-CSharp"/>
-    <Reference Include="DV.BrakeSystem"/>
-    <Reference Include="UnityEngine.CoreModule"/>
-    <Reference Include="UnityEngine.IMGUIModule"/>
-    <Reference Include="UnityModManager"/>
+    <PackageReference Include="RedworkDE.Publicizer" Version="0.2.2" />
+    <PublicizeAssembly Include="Assembly-CSharp" Private="True" Readonly="True" />
+    <Reference Include="Assembly-CSharp" Private="True" />
+    <Reference Include="0Harmony" />
+    <Reference Include="BezierCurves" />
+    <Reference Include="DV.BrakeSystem" />
+    <Reference Include="UnityEngine.CoreModule" />
+    <Reference Include="UnityEngine.IMGUIModule" />
+    <Reference Include="UnityEngine.PhysicsModule" />
+    <Reference Include="UnityEngine.TextRenderingModule" />
+    <Reference Include="UnityModManager" />
   </ItemGroup>
 </Project>

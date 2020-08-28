@@ -16,7 +16,7 @@ namespace DvMod.HeadsUpDisplay
             if (!providers.ContainsKey(carType))
                 providers.Add(carType, new OrderedDictionary());
             providers[carType][dp.Label] = dp;
-            Main.DebugLog($"Registered data provider for {dp.Label}");
+            Main.DebugLog($"Registered data provider for {carType}: {dp.Label}");
         }
 
         public static DataProvider GetProvider(TrainCarType carType, string label)
