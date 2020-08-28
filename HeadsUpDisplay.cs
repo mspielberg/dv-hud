@@ -27,6 +27,7 @@ namespace DvMod.HeadsUpDisplay
             modEntry.OnToggle = OnToggle;
             modEntry.OnUnload = OnUnload;
 
+            Commands.Register();
             DataProviders.Register();
 
             if (SaveLoadController.carsAndJobsLoadingFinished && WorldStreamingInit.IsLoaded)
