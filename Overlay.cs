@@ -30,17 +30,20 @@ namespace DvMod.HeadsUpDisplay
             noTitleBar.padding.top = noTitleBar.padding.bottom;
             noTitleBar.onNormal = noTitleBar.normal;
 
-            rightAlign = new GUIStyle(noWrap);
-            rightAlign.alignment = TextAnchor.MiddleRight;
-
             noWrap = new GUIStyle(GUI.skin.label);
             noWrap.wordWrap = false;
+
+            rightAlign = new GUIStyle(noWrap);
+            rightAlign.alignment = TextAnchor.MiddleRight;
         }
 
         public void OnGUI()
         {
             if (!Main.enabled)
                 return;
+            if (PlayerManager.Car == null)
+                return;
+
             InitializeStyles();
 
             Main.settings.hudPosition = GUILayout.Window(
@@ -69,11 +72,11 @@ namespace DvMod.HeadsUpDisplay
                 GUILayout.EndHorizontal();
             }
 
-            if (Main.settings.showCarList)
-                DrawCarList();
-
             if (Main.settings.showTrackInfo)
                 DrawUpcomingEvents();
+
+            if (Main.settings.showCarList)
+                DrawCarList();
 
             GUI.DragWindow();
         }
@@ -141,6 +144,7 @@ namespace DvMod.HeadsUpDisplay
                 GUI.contentColor = JobColor(job);
                 GUILayout.Label(job?.ID ?? " ", noWrap);
             }
+            GUI.contentColor = Color.white;
             GUILayout.EndVertical();
         }
 
@@ -231,10 +235,12 @@ namespace DvMod.HeadsUpDisplay
 
             GUILayout.BeginHorizontal("box");
 
-            GUILayout.BeginVertical();
+            GUILayout.BeginVertical(GUILayout.MaxWidth(50));
             foreach ((double span, string desc) in eventDescriptions)
                 GUILayout.Label($"{(Math.Round(span / 10) * 10).ToString("F0")} m", rightAlign);
             GUILayout.EndVertical();
+
+            GUILayout.Space(20);
 
             GUILayout.BeginVertical();
             foreach ((double span, string desc) in eventDescriptions)
