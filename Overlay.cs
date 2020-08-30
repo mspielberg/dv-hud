@@ -118,12 +118,29 @@ namespace DvMod.HeadsUpDisplay
             GUILayout.EndVertical();
         }
 
+        Color JobColor(Job job)
+        {
+            if (job == null)
+                return Color.white;
+            switch (job.State)
+            {
+                case JobState.Available: return Color.yellow;
+                case JobState.InProgress: return Color.white;
+                case JobState.Completed: return Color.green;
+                default: return Color.red;
+            };
+        }
+
         void DrawCarJobs(IEnumerable<TrainCar> cars)
         {
             GUILayout.BeginVertical();
             GUILayout.Label("Job", noWrap);
             foreach (TrainCar car in cars)
-                GUILayout.Label(JobChainController.GetJobOfCar(car)?.ID ?? " ", noWrap);
+            {
+                var job = JobChainController.GetJobOfCar(car);
+                GUI.contentColor = JobColor(job);
+                GUILayout.Label(job?.ID ?? " ", noWrap);
+            }
             GUILayout.EndVertical();
         }
 
