@@ -105,9 +105,13 @@ namespace DvMod.HeadsUpDisplay
             public bool ShowSlip { get => showLoco && showSlip; }
 
             [Draw("Show car list")] public bool showCarList = true;
-            [Draw("Show wheel strain", VisibleOn = "showCarList|true")] public bool showCarStress = true;
-            [Draw("Show job ID", VisibleOn = "showCarList|true")] public bool showCarJobs = true;
-            [Draw("Show destination", VisibleOn = "showCarList|true")] public bool showCarDestinations = true;
+            [Draw("Wheel strain", VisibleOn = "showCarList|true")] public bool showCarStress = true;
+            [Draw("Job ID", VisibleOn = "showCarList|true")] public bool showCarJobs = true;
+            [Draw("Destination", VisibleOn = "showCarList|true")] public bool showCarDestinations = true;
+
+            [Draw("Show track info")] public bool showTrackInfo = true;
+            [Draw("Max events", VisibleOn = "showTrackInfo|true")] public int maxEventCount = 20;
+            [Draw("Max distance", VisibleOn = "showTrackInfo|true")] public double maxEventSpan = 1000;
 
             [Draw("Enable logging")] public bool enableLogging = false;
 

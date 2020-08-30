@@ -1,4 +1,5 @@
 using DV.Logic.Job;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -66,6 +67,9 @@ namespace DvMod.HeadsUpDisplay
 
             if (Main.settings.showCarList)
                 DrawCarList();
+
+            if (Main.settings.showTrackInfo)
+                DrawUpcomingEvents();
 
             GUI.DragWindow();
         }
@@ -171,6 +175,59 @@ namespace DvMod.HeadsUpDisplay
         string DumpJob(Job job)
         {
             return string.Join("\n", job.tasks.Select(DumpTask));
+        }
+
+        void DrawUpcomingEvents()
+        {
+            var bogie = PlayerManager.Car.Bogies[0];
+            var track = bogie.track;
+            var startSpan = bogie.traveller.Span;
+            var locoDirection = (PlayerManager.LastLoco?.GetComponent<LocoControllerBase>()?.reverser ?? 0f) >= 0f;
+            var direction = !locoDirection ^ (bogie.trackDirection > 0);
+            var currentGrade = TrackIndexer.Grade(bogie.point1) * (direction ? 1 : -1);
+
+            var events = TrackFollower.FollowTrack(
+                track,
+                startSpan,
+                direction ? Main.settings.maxEventSpan : -Main.settings.maxEventSpan);
+
+            var eventDescriptions = events
+                .ExceptUnnamedTracks()
+                .ResolveJunctionSpeedLimits()
+                .FilterRedundantSpeedLimits()
+                .FilterGradeEvents(currentGrade)
+                .Take(Main.settings.maxEventCount)
+                .Select(ev => {
+                    switch (ev)
+                    {
+                    case TrackChangeEvent e:
+                        return (e.span, e.ID.ToString());
+                    case JunctionEvent e:
+                        return (e.span, e.selectedBranch == 0 ? "Left" : "Right");
+                    case DualSpeedLimitEvent e:
+                        return (e.span, $"{e.limit} / {e.rightLimit} km/h");
+                    case SpeedLimitEvent e:
+                        return (e.span, $"{e.limit} km/h");
+                    case GradeEvent e:
+                        return (e.span, $"{e.grade.ToString("F1")}%");
+                    default:
+                        return (0.0, $"Unknown event: {ev}");
+                    }
+                });
+
+            GUILayout.BeginHorizontal("box");
+
+            GUILayout.BeginVertical();
+            foreach ((double span, string desc) in eventDescriptions)
+                GUILayout.Label($"{(Math.Round(span / 10) * 10).ToString("F0")} m");
+            GUILayout.EndVertical();
+
+            GUILayout.BeginVertical();
+            foreach ((double span, string desc) in eventDescriptions)
+                GUILayout.Label(desc);
+            GUILayout.EndVertical();
+
+            GUILayout.EndHorizontal();
         }
     }
 }
