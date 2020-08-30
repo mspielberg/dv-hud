@@ -2,7 +2,7 @@
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
     <RootNamespace>DvMod.HeadsUpDisplay</RootNamespace>
-    <InformationalVersion>0.1.0-6-gadd0ed5-dirty</InformationalVersion>
+    <InformationalVersion>0.2.0</InformationalVersion>
     <LangVersion>8.0</LangVersion>
     <Nullable>enable</Nullable>
   </PropertyGroup>
