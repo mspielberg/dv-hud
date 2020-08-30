@@ -26,53 +26,98 @@ namespace DvMod.HeadsUpDisplay
 
     static class TrackIndexer
     {
-        const int SIGN_COLLIDER_LAYER = 30;
+        internal const int SIGN_COLLIDER_LAYER = 30;
         const float SIMPLIFIED_RESOLUTION = 10f;
 
-        static Dictionary<RailTrack, List<SignData>> indexedTracks =
-            new Dictionary<RailTrack, List<SignData>>();
+        static Dictionary<RailTrack, List<TrackEvent>> indexedTracks =
+            new Dictionary<RailTrack, List<TrackEvent>>();
 
-        public static List<SignData> GetSignData(RailTrack track)
+        public static IEnumerable<TrackEvent> GetTrackEvents(RailTrack track)
         {
-            List<SignData> data;
+            List<TrackEvent> data;
             if (!indexedTracks.TryGetValue(track, out data))
-                data = indexedTracks[track] = LookForSigns(track.GetPointSet()).ToList();
+                data = indexedTracks[track] = GenerateTrackEvents(track).ToList();
             return data;
         }
 
-        private static IEnumerable<SignData> ParseSign(string colliderName, int direction, double span)
+        public static IEnumerable<TrackEvent> GetTrackEvents(RailTrack track, bool first, double start)
+        {
+            var allTrackEvents = GetTrackEvents(track);
+            var filtered = allTrackEvents.RelativeFromSpan(start, first);
+            // Debug.Log($"allTrackEvents:\n{string.Join("\n",allTrackEvents)}\nfiltered:\n{string.Join("\n",filtered)}");
+            return filtered;
+        }
+
+        private static SpeedLimitEvent ParseSign(string colliderName, bool direction, double span)
         {
             string[] parts = colliderName.Split('\n');
             switch (parts.Length)
             {
                 case 1:
-                    yield return new SignData(-1, int.Parse(parts[0]) * 10, direction, span);
-                    break;
+                    return new SpeedLimitEvent(span, direction, int.Parse(parts[0]) * 10);
                 case 2:
-                    yield return new SignData(0, int.Parse(parts[0]) * 10, direction, span);
-                    yield return new SignData(1, int.Parse(parts[1]) * 10, direction, span);
-                    break;
+                    return new DualSpeedLimitEvent(span, direction, int.Parse(parts[0]) * 10, int.Parse(parts[1]) * 10);
+            }
+            return null;
+        }
+
+        static float Grade(EquiPointSet.Point point)
+        {
+            return point.forward.y * 100;
+        }
+
+        static IEnumerable<SpeedLimitEvent> FindSigns(EquiPointSet.Point point)
+        {
+            // Debug.Log($"Raycasting from {(Vector3)point.position + WorldMover.currentMove} / {point.forward}");
+            var hits = Physics.RaycastAll(
+                new Ray((Vector3)point.position + WorldMover.currentMove, point.forward),
+                (float)point.spanToNextPoint,
+                1 << SIGN_COLLIDER_LAYER);
+
+            foreach (var hit in hits)
+            {
+                var dp = Vector3.Dot(hit.collider.transform.forward, point.forward);
+                // Debug.Log($"Found sign {hit.collider.name} at {hit.point}, dp = {dp}");
+                bool direction = dp < 0f;
+                yield return ParseSign(hit.collider.name, direction, point.span + hit.distance);
             }
         }
 
-        static IEnumerable<SignData> LookForSigns(EquiPointSet pointSet)
+        const float MIN_GRADE_CHANGE = 0.5f;
+        const float GRADE_CHANGE_INTERVAL_M = 100f;
+
+        static float GetInitialGrade(RailTrack track)
         {
+            var branch = track.GetInBranch();
+            if (branch == null)
+                return 0f;
+            var connectingPoints = branch.track.GetPointSet().points;
+            var point = branch.first ? connectingPoints.First() : connectingPoints.Last();
+            return Grade(point);
+        }
+
+        static IEnumerable<TrackEvent> GenerateTrackEvents(RailTrack track)
+        {
+            var pointSet = track.GetPointSet();
             EquiPointSet simplified = EquiPointSet.ResampleEquidistant(
                 pointSet,
                 Mathf.Min(SIMPLIFIED_RESOLUTION, (float)pointSet.span / 2));
 
+            float lastGrade = GetInitialGrade(track);
+            yield return new GradeEvent(0f, lastGrade);
+            double lastGradeChangeSpan = 0f;
             foreach (var point in simplified.points)
             {
-                var hits = Physics.RaycastAll(
-                    new Ray((Vector3)point.position + WorldMover.currentMove, point.forward),
-                    (float)point.spanToNextPoint,
-                    1 << SIGN_COLLIDER_LAYER);
+                foreach (var sign in FindSigns(point))
+                    yield return sign;
 
-                foreach (var hit in hits)
+                float grade = Grade(point);
+                if (point.span >= lastGradeChangeSpan + GRADE_CHANGE_INTERVAL_M &&
+                    Mathf.Abs(Grade(point) - lastGrade) >= MIN_GRADE_CHANGE)
                 {
-                    int direction = Vector3.Dot(hit.collider.transform.forward, point.forward) < 0f ? 1 : -1;
-                    foreach (var data in ParseSign(hit.collider.name, direction, point.span + hit.distance))
-                        yield return data;
+                    lastGrade = Grade(point);
+                    lastGradeChangeSpan = point.span;
+                    yield return new GradeEvent(lastGradeChangeSpan, lastGrade);
                 }
             }
         }
@@ -85,11 +130,16 @@ namespace DvMod.HeadsUpDisplay
                 foreach (var signDebug in sceneGO.GetComponentsInChildren<SignDebug>())
                 {
                     signDebug.gameObject.layer = SIGN_COLLIDER_LAYER;
+                    // var collider = signDebug.gameObject.AddComponent<CapsuleCollider>();
                     var collider = signDebug.gameObject.AddComponent<SphereCollider>();
                     collider.name = signDebug.text;
                     collider.center = new Vector3(2f, 0f, 0f);
                     collider.radius = 1f;
+                    // collider.height = 100f;
+                    // collider.direction = 1; // along Y-axis
                 }
+                for (int l = 0; l < 32; l++)
+                    Physics.IgnoreLayerCollision(l, SIGN_COLLIDER_LAYER);
             }
         }
     }

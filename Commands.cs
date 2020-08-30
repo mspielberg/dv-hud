@@ -47,61 +47,63 @@ namespace DvMod.HeadsUpDisplay
                 Main.DebugLog(output);
             });
 
-            // Register("hud.raycast", args => {
-            //     var transform = PlayerManager.PlayerTransform;
-            //     Terminal.Log($"casting from {transform.position} @ {transform.forward}");
-            //     var hits = Physics.RaycastAll(
-            //         new Ray(transform.position, transform.forward),
-            //         1000f,
-            //         1 << TrackIndexer.SIGN_COLLIDER_LAYER);
-            //     foreach (var hit in hits)
-            //     {
-            //         Terminal.Log($"hit {hit.collider} at {hit.transform.position}: dp = {Vector3.Dot(transform.forward, hit.transform.forward)}, layer = {hit.collider.gameObject.layer}");
-            //     }
-            // });
+            Register("hud.raycast", args => {
+                var transform = PlayerManager.PlayerTransform;
+                Terminal.Log($"casting from {transform.position} @ {transform.forward}");
+                var hits = Physics.RaycastAll(
+                    new Ray(transform.position, transform.forward),
+                    1000f,
+                    1 << TrackIndexer.SIGN_COLLIDER_LAYER);
+                foreach (var hit in hits)
+                {
+                    Terminal.Log($"hit {hit.collider} at {hit.transform.position}: dp = {Vector3.Dot(transform.forward, hit.transform.forward)}, layer = {hit.collider.gameObject.layer}");
+                }
+            });
 
             Register("hud.followTrack", args => {
-                var bogie = PlayerManager.Car?.Bogies[0];
-                var startTrack = bogie?.track;
+                var transform = PlayerManager.PlayerTransform;
+                (RailTrack startTrack, EquiPointSet.Point? nullablePoint) = RailTrack.GetClosest(transform.position);
                 if (startTrack == null)
                     return;
+                var point = (EquiPointSet.Point)nullablePoint;
+                var trackDirection = Vector3.Dot(transform.forward, point.forward) > 0f ? 1 : -1;
 
-                var tracks = TrackFollower.FollowTrack(startTrack, bogie.traveller.Span, bogie.trackDirection * 1000f);
-                foreach ((RailTrack track, int selectedBranch) in tracks)
-                    Terminal.Log($"{track.logicTrack.ID} {selectedBranch}");
+                var trackEvents = TrackFollower.FollowTrack(startTrack, point.span, trackDirection * 1000f);
+                foreach (var trackEvent in trackEvents)
+                    Terminal.Log(trackEvent.ToString());
             });
         }
     }
 
     static class TrackFollower
     {
-        private static bool SpanIsAhead(int travelDirection, double span, double startSpan)
+        public static IEnumerable<TrackEvent> FollowTrack(RailTrack track, double startSpan, double distance)
         {
-            return travelDirection > 0 ? span > startSpan : span < startSpan;
-        }
-
-        public static IEnumerable<(RailTrack, int)> FollowTrack(RailTrack track, double startSpan, double distance)
-        {
-            int selectedBranch = -1;
             const int MAX_ITERATIONS = 10;
+            double distanceFromStart = 0f;
             for (int i = 0; i < MAX_ITERATIONS; i++)
             {
-                yield return (track, selectedBranch);
-                Junction nextJunction;
-                Junction.Branch nextBranch;
-                int travelDirection = distance > 0 ? 1 : -1;
+                yield return new TrackChangeEvent(distanceFromStart, track.logicTrack.ID);
+                bool travelDirection = distance > 0;
+
+                var trackEvents = TrackIndexer
+                    .GetTrackEvents(track, travelDirection, startSpan)
+                    .Offset(distanceFromStart);
+
+                foreach (var trackEvent in trackEvents)
+                    yield return trackEvent;
+
                 double newSpan = startSpan + distance;
 
-                foreach (var data in TrackIndexer.GetSignData(track)
-                    .Where(data => data.direction == travelDirection && SpanIsAhead(travelDirection, data.span, startSpan)))
-                    yield return (track, data.limit);
-
+                Junction nextJunction;
+                Junction.Branch nextBranch;
                 if (newSpan < 0)
                 {
                     nextBranch = track.GetInBranch();
                     if (nextBranch == null)
                         yield break;
                     distance += startSpan;
+                    distanceFromStart += startSpan;
                     if (nextBranch.first)
                         distance *= -1;
                     nextJunction = track.inJunction;
@@ -115,6 +117,7 @@ namespace DvMod.HeadsUpDisplay
                         if (nextBranch == null)
                             yield break;
                         distance -= trackSpan - startSpan;
+                        distanceFromStart += trackSpan - startSpan;
                         if (!nextBranch.first)
                             distance *= -1;
                         nextJunction = track.outJunction;
@@ -126,12 +129,13 @@ namespace DvMod.HeadsUpDisplay
                 if (nextBranch == null)
                     yield break;
 
-                if (nextJunction == null)
-                    selectedBranch = -1;
-                else if (nextJunction.inBranch.track == track)
-                    selectedBranch = nextJunction.selectedBranch;
+                if (nextJunction != null && nextJunction.inBranch.track == track)
+                {
+                    Debug.Log(nextJunction.selectedBranch.ToString());
+                    yield return new JunctionEvent(distanceFromStart, true, nextJunction.selectedBranch);
+                }
                 track = nextBranch.track;
-                startSpan = nextBranch.first ? 0.0 : track.GetPointSet().span;
+                startSpan = nextBranch.first ? 0.0 : nextBranch.track.GetPointSet().span;
             }
         }
     }
