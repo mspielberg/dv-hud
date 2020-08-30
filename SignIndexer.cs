@@ -83,42 +83,18 @@ namespace DvMod.HeadsUpDisplay
             }
         }
 
-        const float MIN_GRADE_CHANGE = 0.5f;
-        const float GRADE_CHANGE_INTERVAL_M = 100f;
-
-        static float GetInitialGrade(RailTrack track)
-        {
-            var branch = track.GetInBranch();
-            if (branch == null)
-                return 0f;
-            var connectingPoints = branch.track.GetPointSet().points;
-            var point = branch.first ? connectingPoints.First() : connectingPoints.Last();
-            return Grade(point);
-        }
-
         static IEnumerable<TrackEvent> GenerateTrackEvents(RailTrack track)
         {
             var pointSet = track.GetPointSet();
             EquiPointSet simplified = EquiPointSet.ResampleEquidistant(
                 pointSet,
-                Mathf.Min(SIMPLIFIED_RESOLUTION, (float)pointSet.span / 2));
+                Mathf.Min(SIMPLIFIED_RESOLUTION, (float)pointSet.span / 3));
 
-            float lastGrade = GetInitialGrade(track);
-            yield return new GradeEvent(0f, lastGrade);
-            double lastGradeChangeSpan = 0f;
             foreach (var point in simplified.points)
             {
                 foreach (var sign in FindSigns(point))
                     yield return sign;
-
-                float grade = Grade(point);
-                if (point.span >= lastGradeChangeSpan + GRADE_CHANGE_INTERVAL_M &&
-                    Mathf.Abs(Grade(point) - lastGrade) >= MIN_GRADE_CHANGE)
-                {
-                    lastGrade = Grade(point);
-                    lastGradeChangeSpan = point.span;
-                    yield return new GradeEvent(lastGradeChangeSpan, lastGrade);
-                }
+                yield return new GradeEvent(point.span, Grade(point));
             }
         }
 
