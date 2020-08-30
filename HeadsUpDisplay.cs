@@ -9,10 +9,10 @@ namespace DvMod.HeadsUpDisplay
     [EnableReloading]
     public static class Main
     {
-        public static bool enabled;
-        public static Settings settings;
-        public static UnityModManager.ModEntry mod;
-        public static GameObject behaviourRoot;
+        public static bool enabled = true;
+        public static Settings settings = new Settings();
+        public static UnityModManager.ModEntry? mod;
+        public static GameObject? behaviourRoot;
 
         static bool Load(UnityModManager.ModEntry modEntry)
         {
@@ -77,7 +77,7 @@ namespace DvMod.HeadsUpDisplay
 
         public static void DebugLog(string message)
         {
-            if (settings.enableLogging)
+            if (settings.enableLogging && mod != null)
                 mod.Logger.Log(message);
         }
 

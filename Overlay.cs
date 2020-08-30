@@ -8,47 +8,51 @@ namespace DvMod.HeadsUpDisplay
 {
     class Overlay : MonoBehaviour
     {
-        public static Overlay instance;
-        static GUIStyle noTitleBar;
-        static GUIStyle noWrap;
+        public static Overlay? instance;
+        static GUIStyle? noTitleBar;
+        static GUIStyle? noWrap;
+        static GUIStyle? rightAlign;
 
         public Overlay()
         {
             instance = this;
         }
 
+        /// Can only be called during OnGui()
+        private void InitializeStyles()
+        {
+            if (noTitleBar != null)
+                return;
+
+            noTitleBar = new GUIStyle(GUI.skin.window);
+            noTitleBar.normal.background = null;
+            noTitleBar.border.top = noTitleBar.border.bottom;
+            noTitleBar.padding.top = noTitleBar.padding.bottom;
+            noTitleBar.onNormal = noTitleBar.normal;
+
+            rightAlign = new GUIStyle(noWrap);
+            rightAlign.alignment = TextAnchor.MiddleRight;
+
+            noWrap = new GUIStyle(GUI.skin.label);
+            noWrap.wordWrap = false;
+        }
+
         public void OnGUI()
         {
             if (!Main.enabled)
                 return;
-            if (PlayerManager.Car == null)
-                return;
-
-            if (noTitleBar == null)
-            {
-                noTitleBar = new GUIStyle(GUI.skin.window);
-                noTitleBar.normal.background = null;
-                noTitleBar.border.top = noTitleBar.border.bottom;
-                noTitleBar.padding.top = noTitleBar.padding.bottom;
-                noTitleBar.onNormal = noTitleBar.normal;
-            }
+            InitializeStyles();
 
             Main.settings.hudPosition = GUILayout.Window(
                 GUIUtility.GetControlID(FocusType.Passive),
                 Main.settings.hudPosition,
-                DrawWindow,
+                DrawDrivingInfoWindow,
                 "",
                 noTitleBar);
         }
 
-        void DrawWindow(int windowID)
+        void DrawDrivingInfoWindow(int windowID)
         {
-            if (noWrap == null)
-            {
-                noWrap = new GUIStyle(GUI.skin.label);
-                noWrap.wordWrap = false;
-            }
-
             foreach (var group in Registry.GetProviders(PlayerManager.Car.carType))
             {
                 GUILayout.BeginHorizontal("box");
@@ -97,15 +101,8 @@ namespace DvMod.HeadsUpDisplay
             GUILayout.EndHorizontal();
         }
 
-        GUIStyle rightAlign;
         void DrawCarStress(IEnumerable<TrainCar> cars)
         {
-            if (rightAlign == null)
-            {
-                rightAlign = new GUIStyle(noWrap);
-                rightAlign.alignment = TextAnchor.MiddleRight;
-            }
-
             var derailThreshold = SimManager.instance.derailBuildUpThreshold;
 
             GUILayout.BeginVertical();
@@ -141,7 +138,7 @@ namespace DvMod.HeadsUpDisplay
             GUILayout.EndVertical();
         }
 
-        Track GetNextDestinationTrack(Task task, Car car)
+        Track? GetNextDestinationTrack(Task task, Car car)
         {
             var data = task.GetTaskData();
             if (data.type == TaskType.Transport || data.type == TaskType.Warehouse)
@@ -149,7 +146,7 @@ namespace DvMod.HeadsUpDisplay
             return data.nestedTasks.Select(t => GetNextDestinationTrack(t, car)).FirstOrDefault(track => track != null);
         }
 
-        Track GetNextDestinationTrack(Job job, Car car)
+        Track? GetNextDestinationTrack(Job job, Car car)
         {
             return job?.tasks.Select(task => GetNextDestinationTrack(task, car)).FirstOrDefault(track => track != null);
         }
@@ -219,7 +216,7 @@ namespace DvMod.HeadsUpDisplay
 
             GUILayout.BeginVertical();
             foreach ((double span, string desc) in eventDescriptions)
-                GUILayout.Label($"{(Math.Round(span / 10) * 10).ToString("F0")} m");
+                GUILayout.Label($"{(Math.Round(span / 10) * 10).ToString("F0")} m", rightAlign);
             GUILayout.EndVertical();
 
             GUILayout.BeginVertical();

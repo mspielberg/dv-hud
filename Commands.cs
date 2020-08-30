@@ -34,8 +34,10 @@ namespace DvMod.HeadsUpDisplay
         public static void Register()
         {
             Register("hud.dumpTrack", args => {
-                var bogie = PlayerManager.Car?.Bogies[0];
-                var track = bogie?.track;
+                if (PlayerManager.Car == null)
+                    return;
+                var bogie = PlayerManager.Car.Bogies[0];
+                var track = bogie.track;
                 if (track == null)
                     return;
                 var direction = bogie.trackDirection;
@@ -62,13 +64,14 @@ namespace DvMod.HeadsUpDisplay
 
             Register("hud.followTrack", args => {
                 var transform = PlayerManager.PlayerTransform;
-                (RailTrack startTrack, EquiPointSet.Point? nullablePoint) = RailTrack.GetClosest(transform.position);
+                (RailTrack startTrack, EquiPointSet.Point? point) = RailTrack.GetClosest(transform.position);
                 if (startTrack == null)
                     return;
-                var point = (EquiPointSet.Point)nullablePoint;
-                var trackDirection = Vector3.Dot(transform.forward, point.forward) > 0f ? 1 : -1;
+                var pointForward = point?.forward ?? Vector3.zero;
+                var pointSpan = point?.span ?? 0;
+                var trackDirection = Vector3.Dot(transform.forward, pointForward) > 0f ? 1 : -1;
 
-                var trackEvents = TrackFollower.FollowTrack(startTrack, point.span, trackDirection * 1000f);
+                var trackEvents = TrackFollower.FollowTrack(startTrack, pointSpan, trackDirection * 1000f);
                 foreach (var trackEvent in trackEvents)
                     Terminal.Log(trackEvent.ToString());
             });

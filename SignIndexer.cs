@@ -48,7 +48,7 @@ namespace DvMod.HeadsUpDisplay
             return filtered;
         }
 
-        private static SpeedLimitEvent ParseSign(string colliderName, bool direction, double span)
+        private static SpeedLimitEvent? ParseSign(string colliderName, bool direction, double span)
         {
             string[] parts = colliderName.Split('\n');
             switch (parts.Length)
@@ -79,7 +79,11 @@ namespace DvMod.HeadsUpDisplay
                 var dp = Vector3.Dot(hit.collider.transform.forward, point.forward);
                 // Debug.Log($"Found sign {hit.collider.name} at {hit.point}, dp = {dp}");
                 bool direction = dp < 0f;
-                yield return ParseSign(hit.collider.name, direction, point.span + hit.distance);
+                var signEvent = ParseSign(hit.collider.name, direction, point.span + hit.distance);
+                if (signEvent == null)
+                    Debug.Log($"Could not parse sign text {hit.collider.name}");
+                else
+                    yield return signEvent;
             }
         }
 
