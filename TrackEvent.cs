@@ -5,14 +5,6 @@ using UnityEngine;
 
 namespace DvMod.HeadsUpDisplay
 {
-    enum TrackEventType
-    {
-        Junction,
-        SpeedLimit,
-        DualSpeedLimit,
-        Grade,
-    }
-
     abstract class TrackEvent
     {
         public readonly double span;
@@ -177,6 +169,72 @@ namespace DvMod.HeadsUpDisplay
                 // Debug.Log($"setting span to {ev.span} + {offset} = {ev.span+offset}");
                 yield return ev.WithSpan(ev.span + offset);
             }
+        }
+
+        public static IEnumerable<TrackEvent> ResolveJunctionSpeedLimits(this IEnumerable<TrackEvent> events)
+        {
+            return events.Select((ev, i) => {
+                if (ev is DualSpeedLimitEvent e)
+                {
+                    var nextJunction = events.Skip(i).OfType<JunctionEvent>().FirstOrDefault();
+                    if (nextJunction == null)
+                        return ev;
+                    if (nextJunction.selectedBranch == 0)
+                        return new SpeedLimitEvent(e.span, true, e.limit);
+                    else
+                        return new SpeedLimitEvent(e.span, true, e.rightLimit);
+                }
+                else
+                {
+                    return ev;
+                }
+            });
+        }
+
+        public static IEnumerable<TrackEvent> FilterRedundantSpeedLimits(this IEnumerable<TrackEvent> events)
+        {
+            int prevSpeedLimit = -1;
+            foreach (TrackEvent ev in events)
+            {
+                if (ev is SpeedLimitEvent sle)
+                {
+                    if (sle.limit != prevSpeedLimit)
+                    {
+                        prevSpeedLimit = sle.limit;
+                        yield return sle;
+                    }
+                }
+                else
+                    yield return ev;
+            }
+        }
+
+        const double GradeChangeInterval = 100;
+
+        public static IEnumerable<TrackEvent> FilterGradeEvents(this IEnumerable<TrackEvent> events, float prevGrade)
+        {
+            prevGrade = (float)Mathf.RoundToInt(prevGrade * 2) / 2;
+            double prevSpan = -GradeChangeInterval;
+            foreach (TrackEvent ev in events)
+            {
+                if (ev is GradeEvent gradeEvent)
+                {
+                    if (prevGrade != gradeEvent.grade && gradeEvent.span >= prevSpan + GradeChangeInterval)
+                    {
+                        prevGrade = gradeEvent.grade;
+                        yield return gradeEvent;
+                    }
+                }
+                else
+                    yield return ev;
+            }
+        }
+
+        public static IEnumerable<TrackEvent> ExceptUnnamedTracks(this IEnumerable<TrackEvent> events)
+        {
+            return events.Where(ev =>
+                ev is TrackChangeEvent tce ? !tce.ID.IsGeneric() : true
+            );
         }
     }
 }
