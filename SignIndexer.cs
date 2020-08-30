@@ -61,9 +61,9 @@ namespace DvMod.HeadsUpDisplay
             return null;
         }
 
-        static float Grade(EquiPointSet.Point point)
+        public static float Grade(EquiPointSet.Point point)
         {
-            return point.forward.y * 100;
+            return (float)Mathf.RoundToInt(point.forward.y * 200) / 2f;
         }
 
         static IEnumerable<SpeedLimitEvent> FindSigns(EquiPointSet.Point point)
