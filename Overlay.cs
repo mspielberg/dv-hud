@@ -1,5 +1,6 @@
 using DV.Logic.Job;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -13,9 +14,20 @@ namespace DvMod.HeadsUpDisplay
         static GUIStyle? noWrap;
         static GUIStyle? rightAlign;
 
-        public Overlay()
+        bool overlayEnabled = false;
+
+        public void Start()
         {
+            // Wait for a frame because for some reason RaycastAll doesn't detect colliders if called on the same frame.
+            StartCoroutine(DelayedEnable());
             instance = this;
+        }
+
+        IEnumerator DelayedEnable()
+        {
+            yield return null;
+            overlayEnabled = true;
+            Main.DebugLog($"Overlay enabled on frame {Time.frameCount}. Fixed update {Time.fixedTime / Time.fixedDeltaTime}");
         }
 
         /// Can only be called during OnGui()
@@ -38,6 +50,11 @@ namespace DvMod.HeadsUpDisplay
         static Rect prevRect = new Rect();
         public void OnGUI()
         {
+            if (!overlayEnabled)
+            {
+                Main.DebugLog($"OnGUI called before Start on frame {Time.frameCount}. Fixed update {Time.fixedTime / Time.fixedDeltaTime}");
+                return;
+            }
             if (!Main.enabled)
                 return;
             if (PlayerManager.Car == null)
