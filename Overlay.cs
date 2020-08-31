@@ -223,6 +223,8 @@ namespace DvMod.HeadsUpDisplay
         {
             var bogie = PlayerManager.Car.Bogies[0];
             var track = bogie.track;
+            if (track == null)
+                return;
             var startSpan = bogie.traveller.Span;
             var locoDirection = (PlayerManager.LastLoco?.GetComponent<LocoControllerBase>()?.reverser ?? 0f) >= 0f;
             var direction = !locoDirection ^ (bogie.trackDirection > 0);
