@@ -222,6 +222,7 @@ namespace DvMod.HeadsUpDisplay
                     if (prevGrade != gradeEvent.grade && gradeEvent.span >= prevSpan + GradeChangeInterval)
                     {
                         prevGrade = gradeEvent.grade;
+                        prevSpan = gradeEvent.span;
                         yield return gradeEvent;
                     }
                 }
