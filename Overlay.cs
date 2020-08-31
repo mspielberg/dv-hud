@@ -254,7 +254,7 @@ namespace DvMod.HeadsUpDisplay
                     case SpeedLimitEvent e:
                         return (e.span, $"{e.limit} km/h");
                     case GradeEvent e:
-                        return (e.span, $"{e.grade.ToString("F1")}%");
+                        return (e.span, $"{e.grade.ToString("F1")} %");
                     default:
                         return (0.0, $"Unknown event: {ev}");
                     }
