@@ -62,6 +62,29 @@ namespace DvMod.HeadsUpDisplay
                 }
             });
 
+            Register("hud.trackevents", args => {
+                var transform = PlayerManager.PlayerTransform;
+                (RailTrack startTrack, EquiPointSet.Point? point) = RailTrack.GetClosest(transform.position);
+                if (startTrack == null)
+                    return;
+                var events = TrackIndexer.GetTrackEvents(startTrack);
+
+                Terminal.Log($"All on track {startTrack.logicTrack.ID}");
+                foreach (var trackEvent in events) {
+                    Terminal.Log(trackEvent.ToString());
+                    Main.DebugLog(trackEvent.ToString());
+                }
+
+                var pointForward = point?.forward ?? Vector3.zero;
+                var pointSpan = point?.span ?? 0;
+                var trackDirection = Vector3.Dot(transform.forward, pointForward) > 0f;
+                Terminal.Log($"From {pointSpan} {trackDirection}:");
+                foreach (var trackEvent in TrackIndexer.GetTrackEvents(startTrack, trackDirection, pointSpan)) {
+                    Terminal.Log(trackEvent.ToString());
+                    Main.DebugLog(trackEvent.ToString());
+                }
+            });
+
             Register("hud.followTrack", args => {
                 var transform = PlayerManager.PlayerTransform;
                 (RailTrack startTrack, EquiPointSet.Point? point) = RailTrack.GetClosest(transform.position);
@@ -73,7 +96,10 @@ namespace DvMod.HeadsUpDisplay
 
                 var trackEvents = TrackFollower.FollowTrack(startTrack, pointSpan, trackDirection * 1000f);
                 foreach (var trackEvent in trackEvents)
+                {
                     Terminal.Log(trackEvent.ToString());
+                    Main.DebugLog(trackEvent.ToString());
+                }
             });
         }
     }
