@@ -94,11 +94,17 @@ namespace DvMod.HeadsUpDisplay
                 pointSet,
                 Mathf.Min(SIMPLIFIED_RESOLUTION, (float)pointSet.span / 3));
 
+            var lastGrade = float.NaN;
             foreach (var point in simplified.points)
             {
                 foreach (var sign in FindSigns(point))
                     yield return sign;
-                yield return new GradeEvent(point.span, Grade(point));
+                var grade = Grade(point);
+                if (grade != lastGrade)
+                {
+                    yield return new GradeEvent(point.span, grade);
+                    lastGrade = grade;
+                }
             }
         }
 
