@@ -42,7 +42,10 @@ namespace DvMod.HeadsUpDisplay
         {
             settings.Draw(modEntry);
             if (GUILayout.Button("Reset position", GUILayout.ExpandWidth(false)))
+            {
                 settings.hudPosition = Settings.defaultPosition;
+                Overlay.instance?.ResetPosition();
+            }
         }
 
         static void OnSaveGui(UnityModManager.ModEntry modEntry)
@@ -83,7 +86,7 @@ namespace DvMod.HeadsUpDisplay
 
         public class Settings : UnityModManager.ModSettings, IDrawable
         {
-            public static Rect defaultPosition = new Rect(10, 10, 0, 0);
+            public static Vector2 defaultPosition = new Vector2(10, 10);
 
             [Draw("Show general info")] private bool showGeneral = true;
             [Draw("Speed", VisibleOn = "showGeneral|true")] private bool showSpeed = true;
@@ -115,7 +118,7 @@ namespace DvMod.HeadsUpDisplay
 
             [Draw("Enable logging")] public bool enableLogging = false;
 
-            public Rect hudPosition = defaultPosition;
+            public Vector2 hudPosition;
 
             override public void Save(UnityModManager.ModEntry entry) {
                 Save<Settings>(this, entry);

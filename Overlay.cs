@@ -9,7 +9,7 @@ namespace DvMod.HeadsUpDisplay
     class Overlay : MonoBehaviour
     {
         public static Overlay? instance;
-        static GUIStyle? noTitleBar;
+        static GUIStyle? noChrome;
         static GUIStyle? noWrap;
         static GUIStyle? rightAlign;
 
@@ -21,14 +21,12 @@ namespace DvMod.HeadsUpDisplay
         /// Can only be called during OnGui()
         private void InitializeStyles()
         {
-            if (noTitleBar != null)
+            if (noChrome != null)
                 return;
 
-            noTitleBar = new GUIStyle(GUI.skin.window);
-            noTitleBar.normal.background = null;
-            noTitleBar.border.top = noTitleBar.border.bottom;
-            noTitleBar.padding.top = noTitleBar.padding.bottom;
-            noTitleBar.onNormal = noTitleBar.normal;
+            noChrome = new GUIStyle(GUI.skin.window);
+            noChrome.normal.background = null;
+            noChrome.onNormal = noChrome.normal;
 
             noWrap = new GUIStyle(GUI.skin.label);
             noWrap.wordWrap = false;
@@ -37,6 +35,7 @@ namespace DvMod.HeadsUpDisplay
             rightAlign.alignment = TextAnchor.MiddleRight;
         }
 
+        static Rect prevRect = new Rect();
         public void OnGUI()
         {
             if (!Main.enabled)
@@ -46,12 +45,20 @@ namespace DvMod.HeadsUpDisplay
 
             InitializeStyles();
 
-            Main.settings.hudPosition = GUILayout.Window(
+            if (prevRect == new Rect())
+                prevRect.position = Main.settings.hudPosition;
+            prevRect = GUILayout.Window(
                 GUIUtility.GetControlID(FocusType.Passive),
-                Main.settings.hudPosition,
+                prevRect,
                 DrawDrivingInfoWindow,
                 "",
-                noTitleBar);
+                noChrome);
+            Main.settings.hudPosition = prevRect.position;
+        }
+
+        public void ResetPosition()
+        {
+            prevRect = new Rect();
         }
 
         void DrawDrivingInfoWindow(int windowID)
