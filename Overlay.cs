@@ -239,6 +239,7 @@ namespace DvMod.HeadsUpDisplay
                 .FilterRedundantSpeedLimits()
                 .FilterGradeEvents(currentGrade)
                 .Take(Main.settings.maxEventCount)
+                .TakeWhile(ev => ev.span < Main.settings.maxEventSpan)
                 .Select(ev => {
                     switch (ev)
                     {
