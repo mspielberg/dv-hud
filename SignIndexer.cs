@@ -36,7 +36,13 @@ namespace DvMod.HeadsUpDisplay
         {
             List<TrackEvent> data;
             if (!indexedTracks.TryGetValue(track, out data))
+            {
+                float start = Time.realtimeSinceStartup;
                 data = indexedTracks[track] = GenerateTrackEvents(track).ToList();
+                float end = Time.realtimeSinceStartup;
+                Main.DebugLog($"Indexed track {track.logicTrack.ID}."
+                   + $" Found {data.Count()} events ({data.OfType<SpeedLimitEvent>().Count()} speed signs) in {end-start} s.");
+            }
             return data;
         }
 
@@ -113,7 +119,9 @@ namespace DvMod.HeadsUpDisplay
         {
             static void Postfix(GameObject sceneGO)
             {
-                foreach (var signDebug in sceneGO.GetComponentsInChildren<SignDebug>())
+                var signDebugs = sceneGO.GetComponentsInChildren<SignDebug>();
+                bool foundSigns = false;
+                foreach (var signDebug in signDebugs)
                 {
                     signDebug.gameObject.layer = SIGN_COLLIDER_LAYER;
                     // var collider = signDebug.gameObject.AddComponent<CapsuleCollider>();
@@ -123,9 +131,13 @@ namespace DvMod.HeadsUpDisplay
                     collider.radius = 1f;
                     // collider.height = 100f;
                     // collider.direction = 1; // along Y-axis
+                    collider.isTrigger = true;
+
+                    foundSigns = true;
                 }
-                for (int l = 0; l < 32; l++)
-                    Physics.IgnoreLayerCollision(l, SIGN_COLLIDER_LAYER);
+                // Main.DebugLog($"Loaded tile {sceneGO} on frame {Time.frameCount}. Fixed update {Time.fixedTime / Time.fixedDeltaTime}");
+                if (foundSigns)
+                    indexedTracks.Clear();
             }
         }
     }
