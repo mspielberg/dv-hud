@@ -9,6 +9,8 @@ namespace DvMod.HeadsUpDisplay
 {
     class Overlay : MonoBehaviour
     {
+        const int ColumnSpacing = 10;
+
         public static Overlay? instance;
         static GUIStyle? noChrome;
         static GUIStyle? noWrap;
@@ -105,47 +107,126 @@ namespace DvMod.HeadsUpDisplay
             GUI.DragWindow();
         }
 
+        readonly struct CarGroup
+        {
+            public readonly int startIndex;
+            public readonly int endIndex;
+            public readonly TrainCar lastCar;
+            public readonly float maxStress;
+            public readonly Job? job;
+
+            public CarGroup(int startIndex, int endIndex, TrainCar lastCar, float maxStress, Job? job)
+            {
+                this.startIndex = startIndex;
+                this.endIndex = endIndex;
+                this.lastCar = lastCar;
+                this.maxStress = maxStress;
+                this.job = job;
+            }
+
+            public override string ToString()
+            {
+                return $"{startIndex}-{endIndex} {lastCar?.ID} {maxStress} {job?.ID}";
+            }
+        }
+
+        IEnumerable<CarGroup> GetCarGroups(IEnumerable<TrainCar> cars, bool individual)
+        {
+            Job? prevJob = null;
+            TrainCar? prevCar = null;
+            int startIndex = 0;
+            float maxStress = 0f;
+            int i = 0;
+            foreach (var car in cars)
+            {
+                var carStress = car.GetComponent<TrainStress>().derailBuildUp;
+                var job = JobChainController.GetJobOfCar(car);
+                if (individual || job == null || job != prevJob)
+                {
+                    // complete previous group
+                    if (i > 0)
+                        yield return new CarGroup(
+                            startIndex,
+                            i,
+                            prevCar!,
+                            maxStress,
+                            prevJob);
+
+                    // start new group
+                    startIndex = i;
+                    prevJob = job;
+                    maxStress = carStress;
+                }
+                else if (carStress > maxStress)
+                    maxStress = carStress;
+
+                prevCar = car;
+                i++;
+            }
+
+            // complete last group
+            yield return new CarGroup(
+                startIndex,
+                i,
+                prevCar!,
+                maxStress,
+                prevJob);
+        }
+
+        const char EnDash = '\u2013';
         void DrawCarList()
         {
             IEnumerable<TrainCar> cars = PlayerManager.Car.trainset.cars.AsReadOnly();
             if (!cars.First().IsLoco && cars.Last().IsLoco)
                 cars = cars.Reverse();
 
+            var groups = GetCarGroups(cars, !Main.settings.groupCarsByJob);
+
             GUILayout.BeginHorizontal("box");
             GUILayout.BeginVertical();
-            GUILayout.Label("Cars:", noWrap);
-            foreach (TrainCar car in cars)
-                GUILayout.Label(car.ID, noWrap);
+            GUILayout.Label(" ", noWrap);
+            foreach (CarGroup group in groups)
+                if (group.startIndex + 1 == group.endIndex)
+                    GUILayout.Label(group.endIndex.ToString(), noWrap);
+                else
+                    GUILayout.Label($"{group.startIndex + 1}{EnDash}{group.endIndex}", noWrap);
+            GUILayout.EndVertical();
+            GUILayout.BeginVertical();
+
+            GUILayout.Label("ID", noWrap);
+            foreach (CarGroup group in groups)
+                GUILayout.Label(group.lastCar.ID, noWrap);
             GUILayout.EndVertical();
 
             if (Main.settings.showCarStress)
-                DrawCarStress(cars);
+                DrawCarStress(groups);
             if (Main.settings.showCarJobs)
-                DrawCarJobs(cars);
+                DrawCarJobs(groups);
             if (Main.settings.showCarDestinations)
-                DrawCarDestinations(cars);
+                DrawCarDestinations(groups);
 
             GUILayout.EndHorizontal();
         }
 
-        void DrawCarStress(IEnumerable<TrainCar> cars)
+        void DrawCarStress(IEnumerable<CarGroup> groups)
         {
             var derailThreshold = SimManager.instance.derailBuildUpThreshold;
 
+            GUILayout.Space(ColumnSpacing);
             GUILayout.BeginVertical();
             GUILayout.Label("Stress", noWrap);
-            foreach (TrainCar car in cars)
+            foreach (CarGroup group in groups)
             {
-                var buildup = car.GetComponent<TrainStress>().derailBuildUp;
+                var buildup = group.maxStress;
                 var buildupPct = buildup / derailThreshold * 100;
                 GUI.contentColor = Color.HSVToRGB(Mathf.Lerp(1f/3f, 0, (buildupPct - 30f) / 40f), 1f, 1f);
-                GUILayout.Label($"{buildupPct.ToString("F0")} %", rightAlign);
+                GUILayout.Label(buildupPct.ToString("F0"), rightAlign);
             }
             GUI.contentColor = Color.white;
             GUILayout.EndVertical();
         }
 
-        Color JobColor(Job job)
+        Color JobColor(Job? job)
         {
             if (job == null)
                 return Color.white;
@@ -158,27 +239,28 @@ namespace DvMod.HeadsUpDisplay
             };
         }
 
-        void DrawCarJobs(IEnumerable<TrainCar> cars)
+        void DrawCarJobs(IEnumerable<CarGroup> groups)
         {
+            GUILayout.Space(ColumnSpacing);
             GUILayout.BeginVertical();
             GUILayout.Label("Job", noWrap);
-            foreach (TrainCar car in cars)
+            foreach (CarGroup group in groups)
             {
-                var job = JobChainController.GetJobOfCar(car);
-                GUI.contentColor = JobColor(job);
-                GUILayout.Label(job?.ID ?? " ", noWrap);
+                GUI.contentColor = JobColor(group.job);
+                GUILayout.Label(group.job?.ID ?? " ", noWrap);
             }
             GUI.contentColor = Color.white;
             GUILayout.EndVertical();
         }
 
-        void DrawCarDestinations(IEnumerable<TrainCar> cars)
+        void DrawCarDestinations(IEnumerable<CarGroup> groups)
         {
+            GUILayout.Space(ColumnSpacing);
             GUILayout.BeginVertical();
             GUILayout.Label("Destination", noWrap);
-            foreach (TrainCar car in cars)
+            foreach (var group in groups)
                 GUILayout.Label(
-                    GetNextDestinationTrack(JobChainController.GetJobOfCar(car), car.logicCar)?.ID?.FullDisplayID ?? " ",
+                    GetNextDestinationTrack(group.job, group.lastCar.logicCar)?.ID?.FullDisplayID ?? " ",
                     noWrap);
             GUILayout.EndVertical();
         }
@@ -191,7 +273,7 @@ namespace DvMod.HeadsUpDisplay
             return data.nestedTasks.Select(t => GetNextDestinationTrack(t, car)).FirstOrDefault(track => track != null);
         }
 
-        Track? GetNextDestinationTrack(Job job, Car car)
+        Track? GetNextDestinationTrack(Job? job, Car car)
         {
             return job?.tasks.Select(task => GetNextDestinationTrack(task, car)).FirstOrDefault(track => track != null);
         }
@@ -267,7 +349,7 @@ namespace DvMod.HeadsUpDisplay
                 GUILayout.Label($"{(Math.Round(span / 10) * 10).ToString("F0")} m", rightAlign);
             GUILayout.EndVertical();
 
-            GUILayout.Space(20);
+            GUILayout.Space(ColumnSpacing);
 
             GUILayout.BeginVertical();
             foreach ((double span, string desc) in eventDescriptions)

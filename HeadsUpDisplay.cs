@@ -112,7 +112,8 @@ namespace DvMod.HeadsUpDisplay
             [Draw("Max distance", VisibleOn = "showTrackInfo|true")] public double maxEventSpan = 2000;
 
             [Draw("Show car list")] public bool showCarList = true;
-            [Draw("Wheel strain", VisibleOn = "showCarList|true")] public bool showCarStress = true;
+            [Draw("Group by job")] public bool groupCarsByJob = true;
+            [Draw("Cornering stress", VisibleOn = "showCarList|true")] public bool showCarStress = true;
             [Draw("Job ID", VisibleOn = "showCarList|true")] public bool showCarJobs = true;
             [Draw("Destination", VisibleOn = "showCarList|true")] public bool showCarDestinations = true;
 
