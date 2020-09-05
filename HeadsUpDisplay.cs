@@ -30,6 +30,8 @@ namespace DvMod.HeadsUpDisplay
             Commands.Register();
             DataProviders.Register();
 
+            Cybex.TabletLoader.Init();
+
             if (SaveLoadController.carsAndJobsLoadingFinished && WorldStreamingInit.IsLoaded)
                 OnLoadingFinished();
             else
@@ -66,6 +68,8 @@ namespace DvMod.HeadsUpDisplay
         {
             behaviourRoot = new GameObject();
             behaviourRoot.AddComponent<Overlay>();
+
+            Cybex.TabletLoader.CreateShopItems();
         }
 
         static bool OnUnload(UnityModManager.ModEntry modEntry)
