@@ -87,13 +87,13 @@ namespace DvMod.HeadsUpDisplay.Cybex
 
 			static bool Prefix(string path, ref Object __result)
 			{
-				const string prefix = "HeadsUpDisplay.";
+				const string prefixHUD = "HeadsUpDisplay.";
 
 				Debug.LogWarning($"Resource load: {path}");
 
-				if (path is { } && assets != null && path.StartsWith(prefix))
+				if (path is { } && assets != null && path.StartsWith(prefixHUD))
 				{
-					__result = assets.LoadAsset(path.Substring(prefix.Length));
+					__result = assets.LoadAsset(path.Substring(prefixHUD.Length));
 					return false;
 				}
 
