@@ -32,7 +32,7 @@ namespace DvMod.HeadsUpDisplay.Cybex
 
 			Debug.LogWarning($"Tablet Loader: {assets}");
 
-			InventoryItemSpec itemSpec = assets.LoadAsset<GameObject>("Assets/Prefabs/TabletComputer.prefab").GetComponent<InventoryItemSpec>();
+			InventoryItemSpec itemSpec = assets.LoadAsset<GameObject>("TabletComputer").GetComponent<InventoryItemSpec>();
 
 			Debug.LogWarning($"Item spec: {itemSpec}");
 
@@ -93,8 +93,7 @@ namespace DvMod.HeadsUpDisplay.Cybex
 
 				if (path is { } && assets != null && path.StartsWith(prefix))
 				{
-					//__result = assets.LoadAsset(path.Substring(prefix.Length));
-					__result = assets.LoadAsset("Assets/Prefabs/TabletComputer.prefab");
+					__result = assets.LoadAsset(path.Substring(prefix.Length));
 					return false;
 				}
 
