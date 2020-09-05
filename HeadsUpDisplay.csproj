@@ -23,9 +23,6 @@
 		<Reference Include="DV.BrakeSystem">
 			<HintPath>C:\Program Files (x86)\Steam\steamapps\common\Derail Valley\DerailValley_Data\Managed\DV.BrakeSystem.dll</HintPath>
 		</Reference>
-		<Reference Include="DV.ControllerAnchors">
-			<HintPath>C:\Program Files (x86)\Steam\steamapps\common\Derail Valley\DerailValley_Data\Managed\DV.ControllerAnchors.dll</HintPath>
-		</Reference>
 		<Reference Include="DV.Interaction">
 			<HintPath>C:\Program Files (x86)\Steam\steamapps\common\Derail Valley\DerailValley_Data\Managed\DV.Interaction.dll</HintPath>
 		</Reference>
