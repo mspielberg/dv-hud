@@ -12,6 +12,12 @@ namespace DvMod.HeadsUpDisplay
         string GetValue(TrainCar car);
     }
 
+    public struct Quantity
+    {
+        public float multiple;
+        public string unit;
+    }
+
     public readonly struct QueryDataProvider : DataProvider
     {
         public string Label { get; }

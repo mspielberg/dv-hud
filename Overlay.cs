@@ -1,4 +1,5 @@
 using DV.Logic.Job;
+using DV.Simulation.Brake;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -115,13 +116,20 @@ namespace DvMod.HeadsUpDisplay
             public readonly float maxStress;
             public readonly Job? job;
 
-            public CarGroup(int startIndex, int endIndex, TrainCar lastCar, float maxStress, Job? job)
+            public readonly float minBrakeReservoirPressure;
+            public readonly float minBrakeCylinderPressure;
+            public readonly float minBrakeFactor;
+
+            public CarGroup(int startIndex, int endIndex, TrainCar lastCar, float maxStress, Job? job, float minBrakeReservoirPressure, float minBrakeCylinderPressure, float minBrakeFactor)
             {
                 this.startIndex = startIndex;
                 this.endIndex = endIndex;
                 this.lastCar = lastCar;
                 this.maxStress = maxStress;
                 this.job = job;
+                this.minBrakeReservoirPressure = minBrakeReservoirPressure;
+                this.minBrakeCylinderPressure = minBrakeCylinderPressure;
+                this.minBrakeFactor = minBrakeFactor;
             }
 
             public override string ToString()
@@ -133,15 +141,23 @@ namespace DvMod.HeadsUpDisplay
         IEnumerable<CarGroup> GetCarGroups(IEnumerable<TrainCar> cars, bool individual)
         {
             Job? prevJob = null;
+            Track? prevDestTrack = null;
             TrainCar? prevCar = null;
             int startIndex = 0;
             float maxStress = 0f;
+
+            float minBrakeReservoirPressure = BrakeSystemConsts.MAX_BRAKE_PIPE_PRESSURE;
+            float minBrakeCylinderPressure = BrakeSystemConsts.MAX_BRAKE_PIPE_PRESSURE;
+            float minBrakeFactor = Single.PositiveInfinity;
+
             int i = 0;
             foreach (var car in cars)
             {
                 var carStress = car.GetComponent<TrainStress>().derailBuildUp;
-                var job = JobChainController.GetJobOfCar(car);
-                if (individual || job == null || job != prevJob)
+                Job? job = JobChainController.GetJobOfCar(car);
+                var destTrack = GetNextDestinationTrack(job, car.logicCar);//?.ID?.ToString();
+                var brakeSystem = car.brakeSystem;
+                if (individual || destTrack == null || destTrack != prevDestTrack)
                 {
                     // complete previous group
                     if (i > 0)
@@ -150,15 +166,31 @@ namespace DvMod.HeadsUpDisplay
                             i,
                             prevCar!,
                             maxStress,
-                            prevJob);
+                            prevJob,
+                            minBrakeReservoirPressure,
+                            minBrakeCylinderPressure,
+                            minBrakeFactor);
 
                     // start new group
                     startIndex = i;
                     prevJob = job;
+                    prevDestTrack = destTrack;
                     maxStress = carStress;
+                    minBrakeReservoirPressure = brakeSystem.mainReservoirPressure;
+                    minBrakeCylinderPressure = brakeSystem.independentPipePressure;
+                    minBrakeFactor = brakeSystem.brakingFactor;
                 }
-                else if (carStress > maxStress)
-                    maxStress = carStress;
+                else
+                {
+                    if (carStress > maxStress)
+                        maxStress = carStress;
+                    if (brakeSystem.mainReservoirPressure < minBrakeReservoirPressure)
+                        minBrakeReservoirPressure = brakeSystem.mainReservoirPressure;
+                    if (brakeSystem.independentPipePressure < minBrakeCylinderPressure)
+                        minBrakeCylinderPressure = brakeSystem.independentPipePressure;
+                    if (brakeSystem.brakingFactor < minBrakeFactor)
+                        minBrakeFactor = brakeSystem.brakingFactor;
+                }
 
                 prevCar = car;
                 i++;
@@ -170,7 +202,10 @@ namespace DvMod.HeadsUpDisplay
                 i,
                 prevCar!,
                 maxStress,
-                prevJob);
+                prevJob,
+                minBrakeReservoirPressure,
+                minBrakeCylinderPressure,
+                minBrakeFactor);
         }
 
         const char EnDash = '\u2013';
@@ -204,6 +239,9 @@ namespace DvMod.HeadsUpDisplay
                 DrawCarJobs(groups);
             if (Main.settings.showCarDestinations)
                 DrawCarDestinations(groups);
+
+            if(true/*Main.settings.showCarBrakes*/)
+                DrawCarBrakeStatus(groups);
 
             GUILayout.EndHorizontal();
         }
@@ -276,6 +314,26 @@ namespace DvMod.HeadsUpDisplay
         Track? GetNextDestinationTrack(Job? job, Car car)
         {
             return job?.tasks.Select(task => GetNextDestinationTrack(task, car)).FirstOrDefault(track => track != null);
+        }
+
+        void DrawCarBrakeStatus(IEnumerable<CarGroup> groups)
+        {
+            GUILayout.Space(ColumnSpacing);
+            GUILayout.BeginVertical();
+            GUILayout.Label("Reservoir", noWrap);
+            foreach (var group in groups)
+                GUILayout.Label(group.minBrakeReservoirPressure.ToString("F2"));
+            GUILayout.EndVertical();
+            GUILayout.BeginVertical();
+            GUILayout.Label("Cylinder", noWrap);
+            foreach (var group in groups)
+                GUILayout.Label(group.minBrakeCylinderPressure.ToString("F2"));
+            GUILayout.EndVertical();
+            GUILayout.BeginVertical();
+            GUILayout.Label("Brake", noWrap);
+            foreach (var group in groups)
+                GUILayout.Label(group.minBrakeFactor.ToString("F2"));
+            GUILayout.EndVertical();
         }
 
         string DumpTask(Task task, int indent = 0)
