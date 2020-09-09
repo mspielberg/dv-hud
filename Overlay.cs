@@ -117,10 +117,10 @@ namespace DvMod.HeadsUpDisplay
             public readonly Job? job;
 
             public readonly float minBrakeReservoirPressure;
-            public readonly float minBrakeCylinderPressure;
-            public readonly float minBrakeFactor;
+            public readonly float maxBrakeCylinderPressure;
+            public readonly float maxBrakeFactor;
 
-            public CarGroup(int startIndex, int endIndex, TrainCar lastCar, float maxStress, Job? job, float minBrakeReservoirPressure, float minBrakeCylinderPressure, float minBrakeFactor)
+            public CarGroup(int startIndex, int endIndex, TrainCar lastCar, float maxStress, Job? job, float minBrakeReservoirPressure, float maxBrakeCylinderPressure, float maxBrakeFactor)
             {
                 this.startIndex = startIndex;
                 this.endIndex = endIndex;
@@ -128,8 +128,8 @@ namespace DvMod.HeadsUpDisplay
                 this.maxStress = maxStress;
                 this.job = job;
                 this.minBrakeReservoirPressure = minBrakeReservoirPressure;
-                this.minBrakeCylinderPressure = minBrakeCylinderPressure;
-                this.minBrakeFactor = minBrakeFactor;
+                this.maxBrakeCylinderPressure = maxBrakeCylinderPressure;
+                this.maxBrakeFactor = maxBrakeFactor;
             }
 
             public override string ToString()
@@ -137,6 +137,11 @@ namespace DvMod.HeadsUpDisplay
                 return $"{startIndex}-{endIndex} {lastCar?.ID} {maxStress} {job?.ID}";
             }
         }
+
+        float GetAuxReservoirPressure(TrainCar car) =>
+            float.Parse(Registry.GetProvider(RegistryKeys.AllCars, "Aux reservoir pressure").GetValue(car));
+        float GetBrakeCylinderPressure(TrainCar car) =>
+            float.Parse(Registry.GetProvider(RegistryKeys.AllCars, "Brake cylinder pressure").GetValue(car));
 
         IEnumerable<CarGroup> GetCarGroups(IEnumerable<TrainCar> cars, bool individual)
         {
@@ -146,9 +151,9 @@ namespace DvMod.HeadsUpDisplay
             int startIndex = 0;
             float maxStress = 0f;
 
-            float minBrakeReservoirPressure = BrakeSystemConsts.MAX_BRAKE_PIPE_PRESSURE;
-            float minBrakeCylinderPressure = BrakeSystemConsts.MAX_BRAKE_PIPE_PRESSURE;
-            float minBrakeFactor = Single.PositiveInfinity;
+            float minBrakeReservoirPressure = 0f;
+            float maxBrakeCylinderPressure = 0f;
+            float maxBrakeFactor = 0f;
 
             int i = 0;
             foreach (var car in cars)
@@ -157,6 +162,8 @@ namespace DvMod.HeadsUpDisplay
                 Job? job = JobChainController.GetJobOfCar(car);
                 var destTrack = GetNextDestinationTrack(job, car.logicCar);//?.ID?.ToString();
                 var brakeSystem = car.brakeSystem;
+                var auxReservoirPressure = GetAuxReservoirPressure(car);
+                var brakeCylinderPressure = GetBrakeCylinderPressure(car);
                 if (individual || destTrack == null || destTrack != prevDestTrack)
                 {
                     // complete previous group
@@ -168,28 +175,28 @@ namespace DvMod.HeadsUpDisplay
                             maxStress,
                             prevJob,
                             minBrakeReservoirPressure,
-                            minBrakeCylinderPressure,
-                            minBrakeFactor);
+                            maxBrakeCylinderPressure,
+                            maxBrakeFactor);
 
                     // start new group
                     startIndex = i;
                     prevJob = job;
                     prevDestTrack = destTrack;
                     maxStress = carStress;
-                    minBrakeReservoirPressure = brakeSystem.mainReservoirPressure;
-                    minBrakeCylinderPressure = brakeSystem.independentPipePressure;
-                    minBrakeFactor = brakeSystem.brakingFactor;
+                    minBrakeReservoirPressure = auxReservoirPressure;
+                    maxBrakeCylinderPressure = brakeCylinderPressure;
+                    maxBrakeFactor = brakeSystem.brakingFactor;
                 }
                 else
                 {
                     if (carStress > maxStress)
                         maxStress = carStress;
-                    if (brakeSystem.mainReservoirPressure < minBrakeReservoirPressure)
-                        minBrakeReservoirPressure = brakeSystem.mainReservoirPressure;
-                    if (brakeSystem.independentPipePressure < minBrakeCylinderPressure)
-                        minBrakeCylinderPressure = brakeSystem.independentPipePressure;
-                    if (brakeSystem.brakingFactor < minBrakeFactor)
-                        minBrakeFactor = brakeSystem.brakingFactor;
+                    if (auxReservoirPressure < minBrakeReservoirPressure)
+                        minBrakeReservoirPressure = auxReservoirPressure;
+                    if (brakeCylinderPressure > maxBrakeCylinderPressure)
+                        maxBrakeCylinderPressure = brakeCylinderPressure;
+                    if (brakeSystem.brakingFactor > maxBrakeFactor)
+                        maxBrakeFactor = brakeSystem.brakingFactor;
                 }
 
                 prevCar = car;
@@ -204,8 +211,8 @@ namespace DvMod.HeadsUpDisplay
                 maxStress,
                 prevJob,
                 minBrakeReservoirPressure,
-                minBrakeCylinderPressure,
-                minBrakeFactor);
+                maxBrakeCylinderPressure,
+                maxBrakeFactor);
         }
 
         const char EnDash = '\u2013';
@@ -327,12 +334,12 @@ namespace DvMod.HeadsUpDisplay
             GUILayout.BeginVertical();
             GUILayout.Label("Cylinder", noWrap);
             foreach (var group in groups)
-                GUILayout.Label(group.minBrakeCylinderPressure.ToString("F2"));
+                GUILayout.Label(group.maxBrakeCylinderPressure.ToString("F2"));
             GUILayout.EndVertical();
             GUILayout.BeginVertical();
             GUILayout.Label("Brake", noWrap);
             foreach (var group in groups)
-                GUILayout.Label(group.minBrakeFactor.ToString("F2"));
+                GUILayout.Label(group.maxBrakeFactor.ToString("F2"));
             GUILayout.EndVertical();
         }
 
