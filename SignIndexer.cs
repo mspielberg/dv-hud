@@ -146,7 +146,7 @@ namespace DvMod.HeadsUpDisplay
     {
         public static IEnumerable<TrackEvent> FollowTrack(RailTrack track, double startSpan, double distance)
         {
-            const int MAX_ITERATIONS = 10;
+            const int MAX_ITERATIONS = 100;
             double distanceFromStart = 0f;
             for (int i = 0; i < MAX_ITERATIONS; i++)
             {
