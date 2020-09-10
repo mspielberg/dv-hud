@@ -24,7 +24,7 @@ namespace DvMod.HeadsUpDisplay
             Main.DebugLog($"Registered data provider for {key}: {dp.Label}");
         }
 
-        public static DataProvider GetProvider(object key, string label)
+        public static DataProvider? GetProvider(object key, string label)
         {
             if (providers.ContainsKey(key))
             {

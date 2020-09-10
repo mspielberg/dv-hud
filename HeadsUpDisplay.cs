@@ -116,6 +116,7 @@ namespace DvMod.HeadsUpDisplay
             [Draw("Cornering stress", VisibleOn = "showCarList|true")] public bool showCarStress = true;
             [Draw("Job ID", VisibleOn = "showCarList|true")] public bool showCarJobs = true;
             [Draw("Destination", VisibleOn = "showCarList|true")] public bool showCarDestinations = true;
+            [Draw("Brake status", VisibleOn = "showCarList|true")] public bool showCarBrakeStatus = true;
 
             [Draw("Enable logging")] public bool enableLogging = false;
 

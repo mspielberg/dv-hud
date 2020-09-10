@@ -31,6 +31,12 @@ namespace DvMod.HeadsUpDisplay
                 () => Main.settings.ShowConsistMass,
                 car => car.trainset.cars.Sum(c => c.totalMass + CargoTypes.GetCargoMass(c.LoadedCargo, c.LoadedCargoAmount)),
                 f => $"{(f / 1000).ToString("F0")} t"));
+
+            Registry.Register(RegistryKeys.AllCars, new QueryDataProvider(
+                "Consist length",
+                () => Main.settings.ShowConsistMass,
+                car => car.trainset.cars.Sum(c => c.logicCar.length),
+                f => $"{f.ToString("F0")} m"));
         }
     }
 }

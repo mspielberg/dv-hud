@@ -1,10 +1,10 @@
 using DV.Logic.Job;
-using DV.Simulation.Brake;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityModManagerNet;
 
 namespace DvMod.HeadsUpDisplay
 {
@@ -139,9 +139,12 @@ namespace DvMod.HeadsUpDisplay
         }
 
         float GetAuxReservoirPressure(TrainCar car) =>
-            float.Parse(Registry.GetProvider(RegistryKeys.AllCars, "Aux reservoir pressure").GetValue(car));
+            Registry.GetProvider(RegistryKeys.AllCars, "Aux reservoir pressure").Map(
+                p => float.Parse(p.GetValue(car))) ?? default;
+
         float GetBrakeCylinderPressure(TrainCar car) =>
-            float.Parse(Registry.GetProvider(RegistryKeys.AllCars, "Brake cylinder pressure").GetValue(car));
+            Registry.GetProvider(RegistryKeys.AllCars, "Brake cylinder pressure").Map(
+                p => float.Parse(p.GetValue(car))) ?? default;
 
         IEnumerable<CarGroup> GetCarGroups(IEnumerable<TrainCar> cars, bool individual)
         {
@@ -160,11 +163,11 @@ namespace DvMod.HeadsUpDisplay
             {
                 var carStress = car.GetComponent<TrainStress>().derailBuildUp;
                 Job? job = JobChainController.GetJobOfCar(car);
-                var destTrack = GetNextDestinationTrack(job, car.logicCar);//?.ID?.ToString();
+                var destTrack = GetNextDestinationTrack(job, car.logicCar);
                 var brakeSystem = car.brakeSystem;
                 var auxReservoirPressure = GetAuxReservoirPressure(car);
                 var brakeCylinderPressure = GetBrakeCylinderPressure(car);
-                if (individual || destTrack == null || destTrack != prevDestTrack)
+                if (individual || destTrack == null || destTrack != prevDestTrack || job != prevJob)
                 {
                     // complete previous group
                     if (i > 0)
@@ -247,7 +250,7 @@ namespace DvMod.HeadsUpDisplay
             if (Main.settings.showCarDestinations)
                 DrawCarDestinations(groups);
 
-            if(true/*Main.settings.showCarBrakes*/)
+            if(Main.settings.showCarBrakeStatus)
                 DrawCarBrakeStatus(groups);
 
             GUILayout.EndHorizontal();
@@ -326,20 +329,24 @@ namespace DvMod.HeadsUpDisplay
         void DrawCarBrakeStatus(IEnumerable<CarGroup> groups)
         {
             GUILayout.Space(ColumnSpacing);
-            GUILayout.BeginVertical();
-            GUILayout.Label("Reservoir", noWrap);
-            foreach (var group in groups)
-                GUILayout.Label(group.minBrakeReservoirPressure.ToString("F2"));
-            GUILayout.EndVertical();
-            GUILayout.BeginVertical();
-            GUILayout.Label("Cylinder", noWrap);
-            foreach (var group in groups)
-                GUILayout.Label(group.maxBrakeCylinderPressure.ToString("F2"));
-            GUILayout.EndVertical();
+
+            if (UnityModManager.FindMod("AirBrake") != null)
+            {
+                GUILayout.BeginVertical();
+                GUILayout.Label("Reservoir", noWrap);
+                foreach (var group in groups)
+                    GUILayout.Label(group.minBrakeReservoirPressure.ToString("F2"), noWrap);
+                GUILayout.EndVertical();
+                GUILayout.BeginVertical();
+                GUILayout.Label("Cylinder", noWrap);
+                foreach (var group in groups)
+                    GUILayout.Label(group.maxBrakeCylinderPressure.ToString("F2"), noWrap);
+                GUILayout.EndVertical();
+            }
             GUILayout.BeginVertical();
             GUILayout.Label("Brake", noWrap);
             foreach (var group in groups)
-                GUILayout.Label(group.maxBrakeFactor.ToString("F2"));
+                GUILayout.Label($"{(group.maxBrakeFactor * 100).ToString("F0")} %", noWrap);
             GUILayout.EndVertical();
         }
 
