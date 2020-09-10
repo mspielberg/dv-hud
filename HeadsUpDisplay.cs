@@ -100,11 +100,11 @@ namespace DvMod.HeadsUpDisplay
 
 
             [Draw("Show locomotive info")] private bool showLoco = true;
-            [Draw("Tractive effort")] private bool showTractiveEffort = true;
+            [Draw("Tractive effort", VisibleOn = "showLoco|true")] private bool showTractiveEffort = true;
             public bool ShowTractiveEffort { get => showLoco && showTractiveEffort; }
-            [Draw("Adhesion")] private bool showAdhesion = true;
+            [Draw("Adhesion", VisibleOn = "showLoco|true")] private bool showAdhesion = true;
             public bool ShowAdhesion { get => showLoco && showAdhesion; }
-            [Draw("Slip")] private bool showSlip = true;
+            [Draw("Slip", VisibleOn = "showLoco|true")] private bool showSlip = true;
             public bool ShowSlip { get => showLoco && showSlip; }
 
             [Draw("Show track info")] public bool showTrackInfo = true;
@@ -112,7 +112,7 @@ namespace DvMod.HeadsUpDisplay
             [Draw("Max distance", VisibleOn = "showTrackInfo|true")] public double maxEventSpan = 2000;
 
             [Draw("Show car list")] public bool showCarList = true;
-            [Draw("Group by job")] public bool groupCarsByJob = true;
+            [Draw("Group by job", VisibleOn = "showCarList|true")] public bool groupCarsByJob = true;
             [Draw("Cornering stress", VisibleOn = "showCarList|true")] public bool showCarStress = true;
             [Draw("Job ID", VisibleOn = "showCarList|true")] public bool showCarJobs = true;
             [Draw("Destination", VisibleOn = "showCarList|true")] public bool showCarDestinations = true;
