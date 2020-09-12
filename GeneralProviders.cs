@@ -13,7 +13,8 @@ namespace DvMod.HeadsUpDisplay
                 () => Main.settings.ShowSpeed,
                 car => Mathf.Abs(car.GetForwardSpeed()) * 3.6f,
                 f => $"{f.ToString("F1")} km/h"));
-            Registry.Register(RegistryKeys.AllCars, new QueryDataProvider("Grade",
+            Registry.Register(RegistryKeys.AllCars, new QueryDataProvider(
+                "Grade",
                 () => Main.settings.ShowGrade,
                 car => {
                     var inclination = car.transform.localEulerAngles.x;

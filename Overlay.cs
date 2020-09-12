@@ -120,17 +120,19 @@ namespace DvMod.HeadsUpDisplay
             public readonly float maxStress;
             public readonly Job? job;
 
+            public readonly float minBrakePipePressure;
             public readonly float minBrakeReservoirPressure;
             public readonly float maxBrakeCylinderPressure;
             public readonly float maxBrakeFactor;
 
-            public CarGroup(int startIndex, int endIndex, TrainCar lastCar, float maxStress, Job? job, float minBrakeReservoirPressure, float maxBrakeCylinderPressure, float maxBrakeFactor)
+            public CarGroup(int startIndex, int endIndex, TrainCar lastCar, float maxStress, Job? job, float minBrakePipePressure, float minBrakeReservoirPressure, float maxBrakeCylinderPressure, float maxBrakeFactor)
             {
                 this.startIndex = startIndex;
                 this.endIndex = endIndex;
                 this.lastCar = lastCar;
                 this.maxStress = maxStress;
                 this.job = job;
+                this.minBrakePipePressure = minBrakePipePressure;
                 this.minBrakeReservoirPressure = minBrakeReservoirPressure;
                 this.maxBrakeCylinderPressure = maxBrakeCylinderPressure;
                 this.maxBrakeFactor = maxBrakeFactor;
@@ -158,7 +160,8 @@ namespace DvMod.HeadsUpDisplay
             int startIndex = 0;
             float maxStress = 0f;
 
-            float minBrakeReservoirPressure = 0f;
+            float minBrakePipePressure = float.PositiveInfinity;
+            float minBrakeReservoirPressure = float.PositiveInfinity;
             float maxBrakeCylinderPressure = 0f;
             float maxBrakeFactor = 0f;
 
@@ -169,6 +172,7 @@ namespace DvMod.HeadsUpDisplay
                 Job? job = JobChainController.GetJobOfCar(car);
                 var destTrack = GetNextDestinationTrack(job, car.logicCar);
                 var brakeSystem = car.brakeSystem;
+                var pipePressure = brakeSystem.brakePipePressure;
                 var auxReservoirPressure = GetAuxReservoirPressure(car);
                 var brakeCylinderPressure = GetBrakeCylinderPressure(car);
                 if (individual || destTrack == null || destTrack != prevDestTrack || job != prevJob)
@@ -181,6 +185,7 @@ namespace DvMod.HeadsUpDisplay
                             prevCar!,
                             maxStress,
                             prevJob,
+                            minBrakePipePressure,
                             minBrakeReservoirPressure,
                             maxBrakeCylinderPressure,
                             maxBrakeFactor);
@@ -190,6 +195,7 @@ namespace DvMod.HeadsUpDisplay
                     prevJob = job;
                     prevDestTrack = destTrack;
                     maxStress = carStress;
+                    minBrakePipePressure = pipePressure;
                     minBrakeReservoirPressure = auxReservoirPressure;
                     maxBrakeCylinderPressure = brakeCylinderPressure;
                     maxBrakeFactor = brakeSystem.brakingFactor;
@@ -198,6 +204,8 @@ namespace DvMod.HeadsUpDisplay
                 {
                     if (carStress > maxStress)
                         maxStress = carStress;
+                    if (pipePressure < minBrakePipePressure)
+                        minBrakeReservoirPressure = auxReservoirPressure;
                     if (auxReservoirPressure < minBrakeReservoirPressure)
                         minBrakeReservoirPressure = auxReservoirPressure;
                     if (brakeCylinderPressure > maxBrakeCylinderPressure)
@@ -217,6 +225,7 @@ namespace DvMod.HeadsUpDisplay
                 prevCar!,
                 maxStress,
                 prevJob,
+                minBrakePipePressure,
                 minBrakeReservoirPressure,
                 maxBrakeCylinderPressure,
                 maxBrakeFactor);
@@ -333,22 +342,32 @@ namespace DvMod.HeadsUpDisplay
         void DrawCarBrakeStatus(IEnumerable<CarGroup> groups)
         {
             GUILayout.Space(ColumnSpacing);
+            GUILayout.BeginVertical();
+            GUILayout.Label("Pipe", noWrap);
+            foreach (var group in groups)
+                GUILayout.Label(group.minBrakePipePressure.ToString("F1"), noWrap);
+            GUILayout.EndVertical();
 
             if (UnityModManager.FindMod("AirBrake") != null)
             {
+                GUILayout.Space(ColumnSpacing);
                 GUILayout.BeginVertical();
-                GUILayout.Label("Reservoir", noWrap);
+                GUILayout.Label("Res", noWrap);
                 foreach (var group in groups)
-                    GUILayout.Label(group.minBrakeReservoirPressure.ToString("F2"), noWrap);
+                    GUILayout.Label(group.minBrakeReservoirPressure.ToString("F1"), noWrap);
                 GUILayout.EndVertical();
+
+                GUILayout.Space(ColumnSpacing);
                 GUILayout.BeginVertical();
-                GUILayout.Label("Cylinder", noWrap);
+                GUILayout.Label("Cyl", noWrap);
                 foreach (var group in groups)
-                    GUILayout.Label(group.maxBrakeCylinderPressure.ToString("F2"), noWrap);
+                    GUILayout.Label(group.maxBrakeCylinderPressure.ToString("F1"), noWrap);
                 GUILayout.EndVertical();
             }
+
+            GUILayout.Space(ColumnSpacing);
             GUILayout.BeginVertical();
-            GUILayout.Label("Brake", noWrap);
+            GUILayout.Label("Force", noWrap);
             foreach (var group in groups)
                 GUILayout.Label($"{(group.maxBrakeFactor * 100).ToString("F0")} %", noWrap);
             GUILayout.EndVertical();
