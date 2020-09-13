@@ -28,7 +28,8 @@ namespace DvMod.HeadsUpDisplay
             if (Terminal.Shell.Commands.Remove(name.ToUpper()))
                 Main.DebugLog($"replacing existing command {name}");
             Terminal.Shell.AddCommand(name, proc);
-            Terminal.Autocomplete.Register(name);
+            if (!Terminal.Autocomplete.known_words.Contains(name))
+                Terminal.Autocomplete.Register(name);
         }
 
         public static void Register()
