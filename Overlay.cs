@@ -256,8 +256,8 @@ namespace DvMod.HeadsUpDisplay
                 maxBrakeFactor);
         }
 
-        const char EnDash = '\u2013';
-        void DrawCarList()
+        private const char EnDash = '\u2013';
+        private void DrawCarList()
         {
             IEnumerable<TrainCar> cars = PlayerManager.Car.trainset.cars.AsReadOnly();
             if (!cars.First().IsLoco && cars.Last().IsLoco)
