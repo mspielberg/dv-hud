@@ -123,22 +123,34 @@ namespace DvMod.HeadsUpDisplay
         {
             public readonly int startIndex;
             public readonly int endIndex;
-            public readonly TrainCar lastCar;
+            public readonly List<TrainCar> cars;
             public readonly float maxStress;
             public readonly Job? job;
+            public readonly Track? nextDestination;
 
             public readonly float minBrakePipePressure;
             public readonly float minBrakeReservoirPressure;
             public readonly float maxBrakeCylinderPressure;
             public readonly float maxBrakeFactor;
 
-            public CarGroup(int startIndex, int endIndex, TrainCar lastCar, float maxStress, Job? job, float minBrakePipePressure, float minBrakeReservoirPressure, float maxBrakeCylinderPressure, float maxBrakeFactor)
+            public CarGroup(
+                int startIndex,
+                int endIndex,
+                List<TrainCar> cars,
+                float maxStress,
+                Job? job,
+                Track? nextDestination,
+                float minBrakePipePressure,
+                float minBrakeReservoirPressure,
+                float maxBrakeCylinderPressure,
+                float maxBrakeFactor)
             {
                 this.startIndex = startIndex;
                 this.endIndex = endIndex;
-                this.lastCar = lastCar;
+                this.cars = cars;
                 this.maxStress = maxStress;
                 this.job = job;
+                this.nextDestination = nextDestination;
                 this.minBrakePipePressure = minBrakePipePressure;
                 this.minBrakeReservoirPressure = minBrakeReservoirPressure;
                 this.maxBrakeCylinderPressure = maxBrakeCylinderPressure;
@@ -147,7 +159,7 @@ namespace DvMod.HeadsUpDisplay
 
             public override string ToString()
             {
-                return $"{startIndex}-{endIndex} {lastCar?.ID} {maxStress} {job?.ID}";
+                return $"{startIndex}-{endIndex} {string.Join(",", cars.Select(c => c.ID))} {maxStress} {job?.ID}";
             }
         }
 
@@ -159,30 +171,31 @@ namespace DvMod.HeadsUpDisplay
             Registry.GetProvider(RegistryKeys.AllCars, "Brake cylinder pressure").Map(
                 p => float.Parse(p.GetValue(car))) ?? default;
 
-        IEnumerable<CarGroup> GetCarGroups(IEnumerable<TrainCar> cars, bool individual)
+        private IEnumerable<CarGroup> GetCarGroups(IEnumerable<TrainCar> cars, bool individual)
         {
             Job? prevJob = null;
             Track? prevDestTrack = null;
-            TrainCar? prevCar = null;
             int startIndex = 0;
             float maxStress = 0f;
 
-            float minBrakePipePressure = float.PositiveInfinity;
-            float minBrakeReservoirPressure = float.PositiveInfinity;
-            float maxBrakeCylinderPressure = 0f;
-            float maxBrakeFactor = 0f;
+            var firstCar = cars.First();
+            var groupCars = new List<TrainCar>(){ firstCar };
+            float minBrakePipePressure = firstCar.brakeSystem.brakePipePressure;
+            float minBrakeReservoirPressure = GetAuxReservoirPressure(firstCar);
+            float maxBrakeCylinderPressure = GetBrakeCylinderPressure(firstCar);
+            float maxBrakeFactor = firstCar.brakeSystem.brakingFactor;
 
             int i = 0;
             foreach (var car in cars)
             {
-                var carStress = car.GetComponent<TrainStress>().derailBuildUp;
+                float carStress = car.GetComponent<TrainStress>().derailBuildUp;
                 Job? job = JobChainController.GetJobOfCar(car);
-                var destTrack = GetNextDestinationTrack(job, car.logicCar);
-                var brakeSystem = car.brakeSystem;
-                var pipePressure = brakeSystem.brakePipePressure;
-                var auxReservoirPressure = GetAuxReservoirPressure(car);
-                var brakeCylinderPressure = GetBrakeCylinderPressure(car);
-                if (individual || destTrack == null || destTrack != prevDestTrack || job != prevJob)
+                Track? nextDestination = GetNextDestinationTrack(job, car.logicCar);
+                BrakeSystem brakeSystem = car.brakeSystem;
+                float pipePressure = brakeSystem.brakePipePressure;
+                float auxReservoirPressure = GetAuxReservoirPressure(car);
+                float brakeCylinderPressure = GetBrakeCylinderPressure(car);
+                if (individual || nextDestination == null || nextDestination != prevDestTrack || job != prevJob)
                 {
                     // complete previous group
                     if (i > 0)
@@ -190,9 +203,10 @@ namespace DvMod.HeadsUpDisplay
                         yield return new CarGroup(
                             startIndex,
                             i,
-                            prevCar!,
+                            groupCars,
                             maxStress,
                             prevJob,
+                            prevDestTrack,
                             minBrakePipePressure,
                             minBrakeReservoirPressure,
                             maxBrakeCylinderPressure,
@@ -201,8 +215,9 @@ namespace DvMod.HeadsUpDisplay
 
                     // start new group
                     startIndex = i;
+                    groupCars = new List<TrainCar>() { car };
                     prevJob = job;
-                    prevDestTrack = destTrack;
+                    prevDestTrack = nextDestination;
                     maxStress = carStress;
                     minBrakePipePressure = pipePressure;
                     minBrakeReservoirPressure = auxReservoirPressure;
@@ -211,6 +226,7 @@ namespace DvMod.HeadsUpDisplay
                 }
                 else
                 {
+                    groupCars.Add(car);
                     if (carStress > maxStress)
                         maxStress = carStress;
                     if (pipePressure < minBrakePipePressure)
@@ -222,8 +238,6 @@ namespace DvMod.HeadsUpDisplay
                     if (brakeSystem.brakingFactor > maxBrakeFactor)
                         maxBrakeFactor = brakeSystem.brakingFactor;
                 }
-
-                prevCar = car;
                 i++;
             }
 
@@ -231,9 +245,10 @@ namespace DvMod.HeadsUpDisplay
             yield return new CarGroup(
                 startIndex,
                 i,
-                prevCar!,
+                groupCars,
                 maxStress,
                 prevJob,
+                prevDestTrack,
                 minBrakePipePressure,
                 minBrakeReservoirPressure,
                 maxBrakeCylinderPressure,
@@ -264,7 +279,7 @@ namespace DvMod.HeadsUpDisplay
             GUILayout.BeginVertical();
             GUILayout.Label("ID", noWrap);
             foreach (CarGroup group in groups)
-                GUILayout.Label(group.lastCar.ID, noWrap);
+                GUILayout.Label(group.cars[0].ID, noWrap);
             GUILayout.EndVertical();
 
             if (Main.settings.showCarStress)
@@ -331,9 +346,18 @@ namespace DvMod.HeadsUpDisplay
             GUILayout.BeginVertical();
             GUILayout.Label("Destination", noWrap);
             foreach (var group in groups)
+            {
+                var destination = group.nextDestination;
+                var currentTracks = group.cars.Select(c => c.logicCar.CurrentTrack);
+                GUI.contentColor = currentTracks.All(t => t == destination) ? Color.green
+                    : currentTracks.Any(t => t == destination) ? Color.yellow
+                    : Color.white;
                 GUILayout.Label(
-                    GetNextDestinationTrack(group.job, group.lastCar.logicCar)?.ID?.FullDisplayID ?? " ",
+                    group.nextDestination?.ID?.FullDisplayID ?? " ",
                     noWrap);
+                Main.DebugLog($"group={group}, dest={destination?.ID}, tracks={string.Join(",", group.cars.Select(c => c.logicCar?.CurrentTrack?.ID))}");
+            }
+            GUI.contentColor = Color.white;
             GUILayout.EndVertical();
         }
 
