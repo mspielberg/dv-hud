@@ -197,7 +197,7 @@ namespace DvMod.HeadsUpDisplay
                     yield break;
 
                 if (nextJunction != null && nextJunction.inBranch.track == track)
-                    yield return new JunctionEvent(distanceFromStart, true, nextJunction.selectedBranch);
+                    yield return new JunctionEvent(distanceFromStart, true, nextJunction);
 
                 track = nextBranch.track;
                 startSpan = nextBranch.first ? 0.0 : nextBranch.track.GetPointSet().span;
