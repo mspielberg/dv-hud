@@ -350,14 +350,13 @@ namespace DvMod.HeadsUpDisplay
             foreach (var group in groups)
             {
                 var destination = group.nextDestination;
-                var currentTracks = group.cars.Select(c => c.logicCar.CurrentTrack);
-                GUI.contentColor = currentTracks.All(t => t == destination) ? Color.green
-                    : currentTracks.Any(t => t == destination) ? Color.yellow
+                var carsOnTrack = group.cars.Count(c => c.logicCar.CurrentTrack == destination);
+                GUI.contentColor = carsOnTrack == group.cars.Count ? Color.green
+                    : carsOnTrack > 0 ? Color.yellow
                     : Color.white;
                 GUILayout.Label(
                     group.nextDestination?.ID?.FullDisplayID ?? " ",
                     noWrap);
-                Main.DebugLog($"group={group}, dest={destination?.ID}, tracks={string.Join(",", group.cars.Select(c => c.logicCar?.CurrentTrack?.ID))}");
             }
             GUI.contentColor = Color.white;
             GUILayout.EndVertical();
