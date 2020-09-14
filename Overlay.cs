@@ -17,6 +17,7 @@ namespace DvMod.HeadsUpDisplay
         private static GUIStyle? noChrome;
         private static GUIStyle? noWrap;
         private static GUIStyle? rightAlign;
+        private static GUIStyle? richText;
 
         private bool overlayEnabled = false;
 
@@ -54,6 +55,11 @@ namespace DvMod.HeadsUpDisplay
             rightAlign = new GUIStyle(noWrap)
             {
                 alignment = TextAnchor.MiddleRight
+            };
+
+            richText = new GUIStyle(noWrap)
+            {
+                richText = true
             };
         }
 
@@ -434,6 +440,20 @@ namespace DvMod.HeadsUpDisplay
         }
         */
 
+        private string GetJunctionEventDescription(JunctionEvent e)
+        {
+            var directionText = e.selectedBranch == 0 ? "Left" : "Right";
+            var color = "white";
+            var car = GetCarOnJunction(e.junction);
+            string carText = "";
+            if (car is TrainCar && car != PlayerManager.Car)
+            {
+                color = "orange";
+                carText = $" ({car.ID})";
+            }
+            return $"<color={color}>{directionText}{carText}</color>";
+        }
+
         private void DrawUpcomingEvents()
         {
             var bogie = PlayerManager.Car.Bogies[0];
@@ -460,7 +480,7 @@ namespace DvMod.HeadsUpDisplay
                 .Select(ev => ev switch
                     {
                         TrackChangeEvent e => (e.span, e.ID.ToString()),
-                        JunctionEvent e => (e.span, e.selectedBranch == 0 ? "Left" : "Right"),
+                        JunctionEvent e => (e.span, GetJunctionEventDescription(e)),
                         DualSpeedLimitEvent e => (e.span, $"{e.limit} / {e.rightLimit} km/h"),
                         SpeedLimitEvent e => (e.span, $"{e.limit} km/h"),
                         GradeEvent e => (e.span, $"{e.grade:F1} %"),
@@ -478,10 +498,34 @@ namespace DvMod.HeadsUpDisplay
 
             GUILayout.BeginVertical();
             foreach ((double span, string desc) in eventDescriptions)
-                GUILayout.Label(desc);
+                GUILayout.Label(desc, richText);
             GUILayout.EndVertical();
 
             GUILayout.EndHorizontal();
+        }
+
+        public static TrainCar? GetCarOnJunction(Junction junction)
+        {
+            const double SpanTolerance = 10;
+            static TrainCar? GetCarOnBranchEnd(Junction.Branch branch)
+            {
+                var track = branch.track;
+                var logicTrack = track.logicTrack;
+                var cars = logicTrack.GetCarsFullyOnTrack().Concat(logicTrack.GetCarsPartiallyOnTrack());
+                var bogies = cars.SelectMany(c => TrainCar.logicCarToTrainCar[c].Bogies).Where(b => b.track == track);
+                if (branch.first)
+                {
+                    return bogies.FirstOrDefault(b => b.point1.span < SpanTolerance || b.point2.span < SpanTolerance)?.Car;
+                }
+                else
+                {
+                    return bogies.FirstOrDefault(b => b.point1.span > (logicTrack.length - SpanTolerance) ||
+                       b.point2.span > (logicTrack.length - SpanTolerance))?.Car;
+                }
+            }
+
+            var carOnOutBranch = junction.outBranches.Select(GetCarOnBranchEnd).FirstOrDefault(c => c != null);
+            return carOnOutBranch ?? GetCarOnBranchEnd(junction.inBranch);
         }
     }
 }

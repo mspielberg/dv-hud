@@ -100,6 +100,26 @@ namespace DvMod.HeadsUpDisplay
                     Main.DebugLog(trackEvent.ToString());
                 }
             });
+
+            Register("hud.findCarOnJunction", args => {
+                var transform = PlayerManager.PlayerTransform;
+                (RailTrack startTrack, EquiPointSet.Point? point) = RailTrack.GetClosest(transform.position);
+                if (startTrack == null)
+                    return;
+                var pointForward = point?.forward ?? Vector3.zero;
+                var pointSpan = point?.span ?? 0;
+                var trackDirection = Vector3.Dot(transform.forward, pointForward) > 0f ? 1 : -1;
+
+                var trackEvents = TrackFollower.FollowTrack(startTrack, pointSpan, trackDirection * 1000f);
+                var junction = trackEvents.OfType<JunctionEvent>().FirstOrDefault();
+                if (junction == null)
+                {
+                    Terminal.Log("no junction");
+                    return;
+                }
+
+                Terminal.Log(Overlay.GetCarOnJunction(junction.junction)?.ID ?? "no car on junction");
+            });
         }
     }
 
