@@ -454,6 +454,17 @@ namespace DvMod.HeadsUpDisplay
             return $"<color={color}>{directionText}{carText}</color>";
         }
 
+        private string GetSpeedLimitEventDescription(SpeedLimitEvent e)
+        {
+            var currentSpeed = Mathf.Abs(PlayerManager.Car.GetForwardSpeed() * 3.6f);
+            var color = "white";
+            if (currentSpeed > e.limit + 5f)
+                color = e.span < 500f ? "red" : e.span < 1000f ? "orange" : "yellow";
+            else if (currentSpeed < e.limit - 10f)
+                color = "lime";
+            return $"<color={color}>{e.limit} km/h</color>";
+        }
+
         private void DrawUpcomingEvents()
         {
             var bogie = PlayerManager.Car.Bogies[0];
@@ -482,7 +493,7 @@ namespace DvMod.HeadsUpDisplay
                         TrackChangeEvent e => (e.span, e.ID.ToString()),
                         JunctionEvent e => (e.span, GetJunctionEventDescription(e)),
                         DualSpeedLimitEvent e => (e.span, $"{e.limit} / {e.rightLimit} km/h"),
-                        SpeedLimitEvent e => (e.span, $"{e.limit} km/h"),
+                        SpeedLimitEvent e => (e.span, GetSpeedLimitEventDescription(e)),
                         GradeEvent e => (e.span, $"{e.grade:F1} %"),
                         _ => (0.0, $"Unknown event: {ev}"),
                     });
