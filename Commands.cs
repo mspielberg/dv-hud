@@ -8,31 +8,40 @@ using UnityEngine;
 
 namespace DvMod.HeadsUpDisplay
 {
-    static class Commands
+    public static class Commands
     {
-        [HarmonyPatch(typeof(CommandShell), nameof(CommandShell.RegisterCommands))]
-        static class RegisterCommandsPatch
+        [HarmonyPatch(typeof(Terminal), nameof(Terminal.Start))]
+        public static class RegisterCommandsPatch
         {
-            static void Postfix()
+            public static void Postfix()
             {
                 Register();
             }
         }
 
-        static void Register(string name, Action<CommandArg[]> proc)
+        private static void Register(string name, Action<CommandArg[]> proc)
         {
-            if (Terminal.Shell == null)
-                return;
             if (Terminal.Shell.Commands.Remove(name.ToUpper()))
                 Main.DebugLog($"replacing existing command {name}");
-            Terminal.Shell.AddCommand(name, proc);
-            if (!Terminal.Autocomplete.known_words.Contains(name))
+            else
                 Terminal.Autocomplete.Register(name);
+            Terminal.Shell.AddCommand(name, proc);
+        }
+
+        private static string GetPath(Component c)
+        {
+            return string.Join("/", c.GetComponentsInParent<Transform>(true).Reverse().Select(c => c.name));
+        }
+
+        private static string DumpHierarchy(GameObject gameObject)
+        {
+            return string.Join("\n", gameObject.GetComponentsInChildren<Component>().Select(c => $"{GetPath(c)} {c.GetType()}"));
         }
 
         public static void Register()
         {
-            Register("hud.dumpTrack", args => {
+            Register("hud.dumpTrack", _ =>
+            {
                 if (PlayerManager.Car == null)
                     return;
                 var bogie = PlayerManager.Car.Bogies[0];
@@ -48,7 +57,8 @@ namespace DvMod.HeadsUpDisplay
                 Main.DebugLog(output);
             });
 
-            Register("hud.raycast", args => {
+            Register("hud.raycast", _ =>
+            {
                 var transform = PlayerManager.PlayerTransform;
                 Terminal.Log($"casting from {transform.position} @ {transform.forward}");
                 var hits = Physics.RaycastAll(
@@ -61,7 +71,8 @@ namespace DvMod.HeadsUpDisplay
                 }
             });
 
-            Register("hud.trackevents", args => {
+            Register("hud.trackevents", _ =>
+            {
                 var transform = PlayerManager.PlayerTransform;
                 (RailTrack startTrack, EquiPointSet.Point? point) = RailTrack.GetClosest(transform.position);
                 if (startTrack == null)
@@ -84,7 +95,8 @@ namespace DvMod.HeadsUpDisplay
                 }
             });
 
-            Register("hud.followTrack", args => {
+            Register("hud.followTrack", _ =>
+            {
                 var transform = PlayerManager.PlayerTransform;
                 (RailTrack startTrack, EquiPointSet.Point? point) = RailTrack.GetClosest(transform.position);
                 if (startTrack == null)
@@ -101,7 +113,8 @@ namespace DvMod.HeadsUpDisplay
                 }
             });
 
-            Register("hud.findCarOnJunction", args => {
+            Register("hud.findCarOnJunction", _ =>
+            {
                 var transform = PlayerManager.PlayerTransform;
                 (RailTrack startTrack, EquiPointSet.Point? point) = RailTrack.GetClosest(transform.position);
                 if (startTrack == null)
@@ -120,7 +133,14 @@ namespace DvMod.HeadsUpDisplay
 
                 Terminal.Log(Overlay.GetCarOnJunction(junction.junction)?.ID ?? "no car on junction");
             });
+
+            Register("hud.dumpInterior", _ =>
+            {
+                if (PlayerManager.Car == null)
+                    return;
+                if (PlayerManager.Car.loadedInterior != null)
+                    Terminal.Log(DumpHierarchy(PlayerManager.Car.loadedInterior));
+            });
         }
     }
-
 }
