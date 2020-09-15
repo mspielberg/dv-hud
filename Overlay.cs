@@ -97,7 +97,7 @@ namespace DvMod.HeadsUpDisplay
 
         private void DrawDrivingInfoWindow(int windowID)
         {
-            foreach (var group in Registry.GetProviders(PlayerManager.Car.carType).Where(g => g.Count > 0))
+            foreach (var group in Registry.GetProviders(PlayerManager.Car.carType).Where(g => g.Any(dp => dp.Enabled)))
             {
                 GUILayout.BeginHorizontal("box");
                 GUILayout.BeginVertical();
