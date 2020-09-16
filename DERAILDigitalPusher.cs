@@ -33,8 +33,41 @@ namespace DvMod.HeadsUpDisplay
 		public static void Push()
 		{
 			if (Instance == null) return;
+			if (Instance.MasterLoco == null) return;
 
-			
+			foreach (var group in Registry.GetProviders(Instance.MasterLoco.carType).Where(g => g.Count > 0))
+			{
+				foreach (var dp in group)
+				{
+					switch (dp.Label)
+					{
+						case "Speed":
+							Instance.SetCurrentSpeed(float.Parse(dp.GetValue(Instance.MasterLoco).Split(' ')[0]));
+							break;
+						case "Grade":
+							Instance.SetCurrentGrade(float.Parse(dp.GetValue(Instance.MasterLoco).Split(' ')[0].TrimStart(new char[] { '\u002b', '\u2212' }))
+														* ((Instance.MasterLoco.GetComponent<LocoControllerBase>().reverser >= 0) ? -1 : 1));
+							break;
+						case "Brake pipe":
+							break;
+						case "Consist mass":
+							Instance.SetTrainWeight(float.Parse(dp.GetValue(Instance.MasterLoco).Split(' ')[0]));
+							break;
+						case "Consist length":
+							Instance.SetTrainLength(float.Parse(dp.GetValue(Instance.MasterLoco).Split(' ')[0]));
+							break;
+						case "Tractive effort":
+							break;
+						case "Adhesion":
+							break;
+						case "Slip":
+							Instance.SetWheelSlip(float.Parse(dp.GetValue(Instance.MasterLoco).Split(' ')[0]));
+							break;
+						default:
+							break;
+					}
+				}
+			}
 		}
 
 		public static IEnumerator RunTest()
