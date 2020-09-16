@@ -14,7 +14,7 @@ namespace DvMod.HeadsUpDisplay
 {
 	public static class DERAILDigitalPusher
 	{
-		static ITabletComputer? Instance;
+		public static ITabletComputer? Instance;
 
 		public static void Init()
 		{
@@ -27,12 +27,14 @@ namespace DvMod.HeadsUpDisplay
 			}
 			Instance = t.ElementAt(0);
 
-			UnityEngine.Debug.LogWarning("[HEADS UP DISPLAY] > [DERAIL Digital] ITabletComputer Instance set.");
+			UnityEngine.Debug.LogWarning("[HEADS UP DISPLAY] > [DERAIL Digital] ITabletComputer Instance set. PushTrigger started!");
 		}
 
 		public static void Push()
 		{
 			if (Instance == null) return;
+
+			
 		}
 
 		public static IEnumerator RunTest()

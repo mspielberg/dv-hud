@@ -1,3 +1,4 @@
+using Cybex;
 using DV.Logic.Job;
 using DV.Simulation.Brake;
 using System;
@@ -26,8 +27,32 @@ namespace DvMod.HeadsUpDisplay
             _ = StartCoroutine(DelayedEnable());
             instance = this;
 
+            // Cybex
             DERAILDigitalPusher.Init();
+            StartCoroutine(PushTrigger());
         }
+
+
+        #region Cybex
+
+        static IEnumerator PushTrigger()
+        {
+            ITabletComputer? tablet = DERAILDigitalPusher.Instance;
+            while (true)
+			{
+                while (tablet == null)
+				{
+                    UnityEngine.Debug.Log("[HEADS UP DISPLAY] > [DERAIL Digital] Tablet is null. PushTrigger skip!");
+                    tablet = DERAILDigitalPusher.Instance;
+                    yield return new WaitForSeconds(0.5f);// null;
+                }
+                DERAILDigitalPusher.Push();
+                yield return null;
+            }
+        }
+
+        #endregion
+
 
         private IEnumerator DelayedEnable()
         {
