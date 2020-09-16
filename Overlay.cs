@@ -25,6 +25,8 @@ namespace DvMod.HeadsUpDisplay
             // Wait for a frame because for some reason RaycastAll doesn't detect colliders if called on the same frame.
             _ = StartCoroutine(DelayedEnable());
             instance = this;
+
+            DERAILDigitalPusher.Init();
         }
 
         private IEnumerator DelayedEnable()
