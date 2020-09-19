@@ -24,24 +24,23 @@ namespace DvMod.HeadsUpDisplay
         }
     }
 
-    static class TrackIndexer
+    public static class TrackIndexer
     {
         internal const int SIGN_COLLIDER_LAYER = 30;
-        const float SIMPLIFIED_RESOLUTION = 10f;
+        private const float SIMPLIFIED_RESOLUTION = 10f;
 
-        static Dictionary<RailTrack, List<TrackEvent>> indexedTracks =
+        private static readonly Dictionary<RailTrack, List<TrackEvent>> indexedTracks =
             new Dictionary<RailTrack, List<TrackEvent>>();
 
         public static IEnumerable<TrackEvent> GetTrackEvents(RailTrack track)
         {
-            List<TrackEvent> data;
-            if (!indexedTracks.TryGetValue(track, out data))
+            if (!indexedTracks.TryGetValue(track, out var data))
             {
                 float start = Time.realtimeSinceStartup;
                 data = indexedTracks[track] = GenerateTrackEvents(track).ToList();
                 float end = Time.realtimeSinceStartup;
                 Main.DebugLog($"Indexed track {track.logicTrack.ID}."
-                   + $" Found {data.Count()} events ({data.OfType<SpeedLimitEvent>().Count()} speed signs) in {end-start} s.");
+                   + $" Found {data.Count} events ({data.OfType<SpeedLimitEvent>().Count()} speed signs) in {end-start} s.");
             }
             return data;
         }
@@ -57,14 +56,12 @@ namespace DvMod.HeadsUpDisplay
         private static SpeedLimitEvent? ParseSign(string colliderName, bool direction, double span)
         {
             string[] parts = colliderName.Split('\n');
-            switch (parts.Length)
+            return parts.Length switch
             {
-                case 1:
-                    return new SpeedLimitEvent(span, direction, int.Parse(parts[0]) * 10);
-                case 2:
-                    return new DualSpeedLimitEvent(span, direction, int.Parse(parts[0]) * 10, int.Parse(parts[1]) * 10);
-            }
-            return null;
+                1 => new SpeedLimitEvent(span, direction, int.Parse(parts[0]) * 10),
+                2 => new DualSpeedLimitEvent(span, direction, int.Parse(parts[0]) * 10, int.Parse(parts[1]) * 10),
+                _ => null,
+            };
         }
 
         public static float Grade(EquiPointSet.Point point)
