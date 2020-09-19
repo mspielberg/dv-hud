@@ -89,23 +89,38 @@ namespace DvMod.HeadsUpDisplay
         {
             public static Vector2 defaultPosition = new Vector2(10, 10);
 
-            [Draw("Show general info")] private bool showGeneral = true;
-            [Draw("Speed", VisibleOn = "showGeneral|true")] private bool showSpeed = true;
+            [Draw("Show general info")]
+            private bool showGeneral = true;
+
+            [Draw("Speed", VisibleOn = "showGeneral|true")]
+            private bool showSpeed = true;
             public bool ShowSpeed { get => showGeneral && showSpeed; }
-            [Draw("Grade", VisibleOn = "showGeneral|true")] private bool showGrade = true;
+
+            [Draw("Grade", VisibleOn = "showGeneral|true")]
+            private bool showGrade = true;
             public bool ShowGrade { get => showGeneral && showGrade; }
-            [Draw("Brake pipe", VisibleOn = "showGeneral|true")] private bool showBrakePipe = true;
+
+            [Draw("Brake pipe", VisibleOn = "showGeneral|true")]
+            private bool showBrakePipe = true;
             public bool ShowBrakePipe { get => showGeneral && showBrakePipe; }
-            [Draw("Consist mass", VisibleOn = "showGeneral|true")] private bool showConsistMass = true;
+
+            [Draw("Consist mass", VisibleOn = "showGeneral|true")]
+            private bool showConsistMass = true;
             public bool ShowConsistMass { get => showGeneral && showConsistMass; }
 
 
             [Draw("Show locomotive info")] private bool showLoco = true;
-            [Draw("Tractive effort", VisibleOn = "showLoco|true")] private bool showTractiveEffort = true;
+
+            [Draw("Tractive effort", VisibleOn = "showLoco|true")]
+            private bool showTractiveEffort = true;
             public bool ShowTractiveEffort { get => showLoco && showTractiveEffort; }
-            [Draw("Adhesion", VisibleOn = "showLoco|true")] private bool showAdhesion = true;
+
+            [Draw("Adhesion", VisibleOn = "showLoco|true")]
+            private bool showAdhesion = true;
             public bool ShowAdhesion { get => showLoco && showAdhesion; }
-            [Draw("Slip", VisibleOn = "showLoco|true")] private bool showSlip = true;
+
+            [Draw("Slip", VisibleOn = "showLoco|true")]
+            private bool showSlip = true;
             public bool ShowSlip { get => showLoco && showSlip; }
 
             [Draw("Show track info")] public bool showTrackInfo = true;
@@ -123,9 +138,7 @@ namespace DvMod.HeadsUpDisplay
 
             public Vector2 hudPosition;
 
-            override public void Save(UnityModManager.ModEntry entry) {
-                Save<Settings>(this, entry);
-            }
+            override public void Save(UnityModManager.ModEntry entry) => Save<Settings>(this, entry);
 
             public void OnChange()
             {

@@ -41,18 +41,19 @@ namespace DvMod.HeadsUpDisplay
     class JunctionEvent : TrackEvent
     {
         public readonly bool direction;
-        public readonly int selectedBranch;
+        public readonly Junction junction;
+        public int selectedBranch => junction.selectedBranch;
 
-        public JunctionEvent(double span, bool direction, int selectedBranch)
+        public JunctionEvent(double span, bool direction, Junction junction)
         : base(span)
         {
             this.direction = direction;
-            this.selectedBranch = selectedBranch;
+            this.junction = junction;
         }
 
         public override TrackEvent WithSpan(double span)
         {
-            return new JunctionEvent(span, true, this.selectedBranch);
+            return new JunctionEvent(span, true, junction);
         }
 
         public override string ToString()

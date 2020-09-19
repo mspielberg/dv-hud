@@ -11,10 +11,8 @@ namespace DvMod.HeadsUpDisplay
 
     static public class Registry
     {
-        static Dictionary<object, OrderedDictionary> providers =
-            new Dictionary<object, OrderedDictionary>() {
-                { RegistryKeys.AllCars, new OrderedDictionary() }
-            };
+        private static readonly Dictionary<object, OrderedDictionary> providers =
+            new Dictionary<object, OrderedDictionary>() { [RegistryKeys.AllCars] = new OrderedDictionary() };
 
         public static void Register(object key, DataProvider dp)
         {
@@ -37,8 +35,10 @@ namespace DvMod.HeadsUpDisplay
 
         public static List<List<DataProvider>> GetProviders(object key)
         {
-            var providersForCarType = new List<List<DataProvider>>();
-            providersForCarType.Add(new List<DataProvider>(providers[RegistryKeys.AllCars].Values.Cast<DataProvider>()));
+            var providersForCarType = new List<List<DataProvider>>
+            {
+                new List<DataProvider>(providers[RegistryKeys.AllCars].Values.Cast<DataProvider>())
+            };
             if (providers.ContainsKey(key))
                 providersForCarType.Add(new List<DataProvider>(providers[key].Values.Cast<DataProvider>()));
             return providersForCarType;

@@ -18,6 +18,7 @@ namespace DvMod.HeadsUpDisplay
         private static GUIStyle? noChrome;
         private static GUIStyle? noWrap;
         private static GUIStyle? rightAlign;
+        private static GUIStyle? richText;
 
         private bool overlayEnabled = false;
 
@@ -56,6 +57,11 @@ namespace DvMod.HeadsUpDisplay
             {
                 alignment = TextAnchor.MiddleRight
             };
+
+            richText = new GUIStyle(noWrap)
+            {
+                richText = true
+            };
         }
 
         private static Rect prevRect = new Rect();
@@ -92,7 +98,7 @@ namespace DvMod.HeadsUpDisplay
 
         private void DrawDrivingInfoWindow(int windowID)
         {
-            foreach (var group in Registry.GetProviders(PlayerManager.Car.carType).Where(g => g.Count > 0))
+            foreach (var group in Registry.GetProviders(PlayerManager.Car.carType).Where(g => g.Any(dp => dp.Enabled)))
             {
                 GUILayout.BeginHorizontal("box");
                 GUILayout.BeginVertical();
@@ -167,11 +173,11 @@ namespace DvMod.HeadsUpDisplay
 
         private float GetAuxReservoirPressure(TrainCar car) =>
             car.IsLoco ? car.brakeSystem.mainReservoirPressure
-            : Registry.GetProvider(RegistryKeys.AllCars, "Aux reservoir pressure").Map(
+            : Registry.GetProvider(car.carType, "Aux reservoir pressure").Map(
                 p => float.Parse(p.GetValue(car))) ?? default;
 
         private float GetBrakeCylinderPressure(TrainCar car) =>
-            Registry.GetProvider(RegistryKeys.AllCars, "Brake cylinder pressure").Map(
+            Registry.GetProvider(car.carType, "Brake cylinder pressure").Map(
                 p => float.Parse(p.GetValue(car))) ?? default;
 
         private IEnumerable<CarGroup> GetCarGroups(IEnumerable<TrainCar> cars, bool individual)
@@ -435,6 +441,31 @@ namespace DvMod.HeadsUpDisplay
         }
         */
 
+        private string GetJunctionEventDescription(JunctionEvent e)
+        {
+            var directionText = e.selectedBranch == 0 ? "Left" : "Right";
+            var color = "white";
+            var car = GetCarOnJunction(e.junction);
+            string carText = "";
+            if (car is TrainCar && car != PlayerManager.Car)
+            {
+                color = "orange";
+                carText = $" ({car.ID})";
+            }
+            return $"<color={color}>{directionText}{carText}</color>";
+        }
+
+        private string GetSpeedLimitEventDescription(SpeedLimitEvent e)
+        {
+            var currentSpeed = Mathf.Abs(PlayerManager.Car.GetForwardSpeed() * 3.6f);
+            var color = "white";
+            if (currentSpeed > e.limit + 5f)
+                color = e.span < 500f ? "red" : e.span < 1000f ? "orange" : "yellow";
+            else if (currentSpeed < e.limit - 10f)
+                color = "lime";
+            return $"<color={color}>{e.limit} km/h</color>";
+        }
+
         private void DrawUpcomingEvents()
         {
             var bogie = PlayerManager.Car.Bogies[0];
@@ -461,9 +492,9 @@ namespace DvMod.HeadsUpDisplay
                 .Select(ev => ev switch
                     {
                         TrackChangeEvent e => (e.span, e.ID.ToString()),
-                        JunctionEvent e => (e.span, e.selectedBranch == 0 ? "Left" : "Right"),
+                        JunctionEvent e => (e.span, GetJunctionEventDescription(e)),
                         DualSpeedLimitEvent e => (e.span, $"{e.limit} / {e.rightLimit} km/h"),
-                        SpeedLimitEvent e => (e.span, $"{e.limit} km/h"),
+                        SpeedLimitEvent e => (e.span, GetSpeedLimitEventDescription(e)),
                         GradeEvent e => (e.span, $"{e.grade:F1} %"),
                         _ => (0.0, $"Unknown event: {ev}"),
                     });
@@ -479,10 +510,34 @@ namespace DvMod.HeadsUpDisplay
 
             GUILayout.BeginVertical();
             foreach ((double span, string desc) in eventDescriptions)
-                GUILayout.Label(desc);
+                GUILayout.Label(desc, richText);
             GUILayout.EndVertical();
 
             GUILayout.EndHorizontal();
+        }
+
+        public static TrainCar? GetCarOnJunction(Junction junction)
+        {
+            const double SpanTolerance = 7.0;
+            static TrainCar? GetCarOnBranchEnd(Junction.Branch branch)
+            {
+                var track = branch.track;
+                var logicTrack = track.logicTrack;
+                var cars = logicTrack.GetCarsFullyOnTrack().Concat(logicTrack.GetCarsPartiallyOnTrack());
+                var bogies = cars.SelectMany(c => TrainCar.logicCarToTrainCar[c].Bogies).Where(b => b.track == track);
+                if (branch.first)
+                {
+                    return bogies.FirstOrDefault(b => b.point1.span < SpanTolerance || b.point2.span < SpanTolerance)?.Car;
+                }
+                else
+                {
+                    return bogies.FirstOrDefault(b => b.point1.span > (logicTrack.length - SpanTolerance) ||
+                       b.point2.span > (logicTrack.length - SpanTolerance))?.Car;
+                }
+            }
+
+            var carOnOutBranch = junction.outBranches.Select(GetCarOnBranchEnd).FirstOrDefault(c => c != null);
+            return carOnOutBranch ?? GetCarOnBranchEnd(junction.inBranch);
         }
     }
 }
