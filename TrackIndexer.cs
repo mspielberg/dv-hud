@@ -1,47 +1,29 @@
 using DV.PointSet;
 using DV.Signs;
 using HarmonyLib;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
 namespace DvMod.HeadsUpDisplay
 {
-    class SignData
-    {
-        public int branch;
-        public int limit;
-        public int direction;
-        public double span;
-
-        public SignData(int branch, int limit, int direction, double span)
-        {
-            this.branch = branch;
-            this.limit = limit;
-            this.direction = direction;
-            this.span = span;
-        }
-    }
-
-    static class TrackIndexer
+    public static class TrackIndexer
     {
         internal const int SIGN_COLLIDER_LAYER = 30;
-        const float SIMPLIFIED_RESOLUTION = 10f;
+        private const float SIMPLIFIED_RESOLUTION = 10f;
 
-        static Dictionary<RailTrack, List<TrackEvent>> indexedTracks =
+        private static readonly Dictionary<RailTrack, List<TrackEvent>> indexedTracks =
             new Dictionary<RailTrack, List<TrackEvent>>();
 
         public static IEnumerable<TrackEvent> GetTrackEvents(RailTrack track)
         {
-            List<TrackEvent> data;
-            if (!indexedTracks.TryGetValue(track, out data))
+            if (!indexedTracks.TryGetValue(track, out var data))
             {
                 float start = Time.realtimeSinceStartup;
                 data = indexedTracks[track] = GenerateTrackEvents(track).ToList();
                 float end = Time.realtimeSinceStartup;
                 Main.DebugLog($"Indexed track {track.logicTrack.ID}."
-                   + $" Found {data.Count()} events ({data.OfType<SpeedLimitEvent>().Count()} speed signs) in {end-start} s.");
+                   + $" Found {data.Count} events ({data.OfType<SpeedLimitEvent>().Count()} speed signs) in {end-start} s.");
             }
             return data;
         }
@@ -57,14 +39,12 @@ namespace DvMod.HeadsUpDisplay
         private static SpeedLimitEvent? ParseSign(string colliderName, bool direction, double span)
         {
             string[] parts = colliderName.Split('\n');
-            switch (parts.Length)
+            return parts.Length switch
             {
-                case 1:
-                    return new SpeedLimitEvent(span, direction, int.Parse(parts[0]) * 10);
-                case 2:
-                    return new DualSpeedLimitEvent(span, direction, int.Parse(parts[0]) * 10, int.Parse(parts[1]) * 10);
-            }
-            return null;
+                1 => new SpeedLimitEvent(span, direction, int.Parse(parts[0]) * 10),
+                2 => new DualSpeedLimitEvent(span, direction, int.Parse(parts[0]) * 10, int.Parse(parts[1]) * 10),
+                _ => null,
+            };
         }
 
         public static float Grade(EquiPointSet.Point point)
@@ -72,7 +52,7 @@ namespace DvMod.HeadsUpDisplay
             return (float)Mathf.RoundToInt(point.forward.y * 200) / 2f;
         }
 
-        static IEnumerable<SpeedLimitEvent> FindSigns(EquiPointSet.Point point)
+        private static IEnumerable<SpeedLimitEvent> FindSigns(EquiPointSet.Point point)
         {
             // Debug.Log($"Raycasting from {(Vector3)point.position + WorldMover.currentMove} / {point.forward}");
             var hits = Physics.RaycastAll(
@@ -93,7 +73,7 @@ namespace DvMod.HeadsUpDisplay
             }
         }
 
-        static IEnumerable<TrackEvent> GenerateTrackEvents(RailTrack track)
+        private static IEnumerable<TrackEvent> GenerateTrackEvents(RailTrack track)
         {
             var pointSet = track.GetPointSet();
             EquiPointSet simplified = EquiPointSet.ResampleEquidistant(
@@ -115,9 +95,9 @@ namespace DvMod.HeadsUpDisplay
         }
 
         [HarmonyPatch(typeof(Streamer), nameof(Streamer.AddSceneGO))]
-        static class AddSceneGOPatch
+        public static class AddSceneGOPatch
         {
-            static void Postfix(GameObject sceneGO)
+            public static void Postfix(GameObject sceneGO)
             {
                 var signDebugs = sceneGO.GetComponentsInChildren<SignDebug>();
                 bool foundSigns = false;
@@ -138,69 +118,6 @@ namespace DvMod.HeadsUpDisplay
                 // Main.DebugLog($"Loaded tile {sceneGO} on frame {Time.frameCount}. Fixed update {Time.fixedTime / Time.fixedDeltaTime}");
                 if (foundSigns)
                     indexedTracks.Clear();
-            }
-        }
-    }
-
-    static class TrackFollower
-    {
-        public static IEnumerable<TrackEvent> FollowTrack(RailTrack track, double startSpan, double distance)
-        {
-            const int MAX_ITERATIONS = 100;
-            double distanceFromStart = 0f;
-            for (int i = 0; i < MAX_ITERATIONS; i++)
-            {
-                yield return new TrackChangeEvent(distanceFromStart, track.logicTrack.ID);
-                bool travelDirection = distance > 0;
-
-                var trackEvents = TrackIndexer
-                    .GetTrackEvents(track, travelDirection, startSpan)
-                    .Offset(distanceFromStart);
-
-                foreach (var trackEvent in trackEvents)
-                    yield return trackEvent;
-
-                double newSpan = startSpan + distance;
-
-                Junction nextJunction;
-                Junction.Branch nextBranch;
-                if (newSpan < 0)
-                {
-                    nextBranch = track.GetInBranch();
-                    if (nextBranch == null)
-                        yield break;
-                    distance += startSpan;
-                    distanceFromStart += startSpan;
-                    if (nextBranch.first)
-                        distance *= -1;
-                    nextJunction = track.inJunction;
-                }
-                else
-                {
-                    double trackSpan = track.GetPointSet().span;
-                    if (newSpan >= trackSpan)
-                    {
-                        nextBranch = track.GetOutBranch();
-                        if (nextBranch == null)
-                            yield break;
-                        distance -= trackSpan - startSpan;
-                        distanceFromStart += trackSpan - startSpan;
-                        if (!nextBranch.first)
-                            distance *= -1;
-                        nextJunction = track.outJunction;
-                    } else {
-                        yield break;
-                    }
-                }
-
-                if (nextBranch == null)
-                    yield break;
-
-                if (nextJunction != null && nextJunction.inBranch.track == track)
-                    yield return new JunctionEvent(distanceFromStart, true, nextJunction);
-
-                track = nextBranch.track;
-                startSpan = nextBranch.first ? 0.0 : nextBranch.track.GetPointSet().span;
             }
         }
     }

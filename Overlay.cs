@@ -75,8 +75,6 @@ namespace DvMod.HeadsUpDisplay
             }
             if (!Main.enabled)
                 return;
-            if (PlayerManager.Car == null)
-                return;
 
             InitializeStyles();
 
@@ -98,6 +96,22 @@ namespace DvMod.HeadsUpDisplay
 
         private void DrawDrivingInfoWindow(int windowID)
         {
+            DrawCurrentCarInfo();
+
+            if (Main.settings.showTrackInfo)
+                DrawUpcomingEvents();
+
+            if (Main.settings.showCarList)
+                DrawCarList();
+
+            GUI.DragWindow();
+        }
+
+        private void DrawCurrentCarInfo()
+        {
+            if (!PlayerManager.Car)
+                return;
+
             foreach (var group in Registry.GetProviders(PlayerManager.Car.carType).Where(g => g.Any(dp => dp.Enabled)))
             {
                 GUILayout.BeginHorizontal("box");
@@ -118,13 +132,6 @@ namespace DvMod.HeadsUpDisplay
                 GUILayout.EndHorizontal();
             }
 
-            if (Main.settings.showTrackInfo)
-                DrawUpcomingEvents();
-
-            if (Main.settings.showCarList)
-                DrawCarList();
-
-            GUI.DragWindow();
         }
 
         private readonly struct CarGroup
@@ -267,7 +274,9 @@ namespace DvMod.HeadsUpDisplay
         private const char EnDash = '\u2013';
         private void DrawCarList()
         {
-            IEnumerable<TrainCar> cars = PlayerManager.Car.trainset.cars.AsReadOnly();
+            if (!PlayerManager.LastLoco)
+                return;
+            IEnumerable<TrainCar> cars = PlayerManager.LastLoco.trainset.cars.AsReadOnly();
             if (!cars.First().IsLoco && cars.Last().IsLoco)
                 cars = cars.Reverse();
 
@@ -443,7 +452,7 @@ namespace DvMod.HeadsUpDisplay
 
         private string GetJunctionEventDescription(JunctionEvent e)
         {
-            var directionText = e.selectedBranch == 0 ? "Left" : "Right";
+            var directionText = e.junction.selectedBranch == 0 ? "Left" : "Right";
             var color = "white";
             var car = GetCarOnJunction(e.junction);
             string carText = "";
@@ -468,6 +477,9 @@ namespace DvMod.HeadsUpDisplay
 
         private void DrawUpcomingEvents()
         {
+            if (!PlayerManager.Car)
+                return;
+
             var bogie = PlayerManager.Car.Bogies[0];
             var track = bogie.track;
             if (track == null)
