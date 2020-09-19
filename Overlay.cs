@@ -517,7 +517,7 @@ namespace DvMod.HeadsUpDisplay
 
         public static TrainCar? GetCarOnJunction(Junction junction)
         {
-            const double SpanTolerance = 10;
+            const double SpanTolerance = 7.0;
             static TrainCar? GetCarOnBranchEnd(Junction.Branch branch)
             {
                 var track = branch.track;
