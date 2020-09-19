@@ -67,7 +67,7 @@ namespace DvMod.HeadsUpDisplay
 
 		private void FixedUpdate ()
 		{
-			if (Instance0 != this || Instance1 != this) Destroy(this.gameObject);
+			if (Instance0 != this && Instance1 != this) Destroy(this.gameObject);
 		}
 	}
 	public class ScanIndicator : MonoBehaviour
@@ -110,7 +110,7 @@ namespace DvMod.HeadsUpDisplay
 
 		private void FixedUpdate()
 		{
-			if (Instance0 != this || Instance1 != this) Destroy(this.gameObject);
+			if (Instance0 != this && Instance1 != this) Destroy(this.gameObject);
 		}
 	}
 #endif
@@ -270,7 +270,7 @@ namespace DvMod.HeadsUpDisplay
 				else { new GameObject().AddComponent<ScanIndicator>(); }
 
 				temp_scanCar = temp_scanDir > 0 ? sortedTrainSet.cars.Last().trainCar : sortedTrainSet.cars.First().trainCar;
-				temp_scanBogie = temp_scanCar.Bogies[(sortedTrainSet[temp_scanCar].forward == (temp_scanDir > 0)) ? temp_scanCar.Bogies.Length - 1 : 0];
+				temp_scanBogie = temp_scanCar.Bogies[(sortedTrainSet[temp_scanCar].forward == (temp_scanDir > 0)) ? 0 : temp_scanCar.Bogies.Length - 1];
 
 				// Instance1 for back
 				if (ScanIndicator.Instance1 != null)
@@ -361,18 +361,22 @@ namespace DvMod.HeadsUpDisplay
 				.Take(Main.settings.maxEventCount)
 				.TakeWhile(ev => ev.span < Main.settings.maxEventSpan);
 
+			(float span, float limit)[] speedLimits = eventDescriptions.Where(e => e is SpeedLimitEvent).Cast<SpeedLimitEvent>().Select(s => ((float)s.span, (float)s.limit)).ToArray();
+			var nearLimits = speedLimits.Where(s => s.span < 5);
+			lastPassedSpeedLimit = (nearLimits.Count() > 0) ? nearLimits.Min(s => s.limit) : lastPassedSpeedLimit;
 
-			Instance.SetTrackSpeedItems(eventDescriptions.Where(e => e is SpeedLimitEvent).Cast<SpeedLimitEvent>().Select(s => ((float)s.span, (float)s.limit)).ToArray());
+			Instance.SetTrackSpeedItems(speedLimits);
 			Instance.SetTrackGradeItems(eventDescriptions.Where(e => e is GradeEvent).Cast<GradeEvent>().Select(s => ((float)s.span, (float)s.grade * 10, -1f)).ToArray());
 		}
 
+		private static float lastPassedSpeedLimit = 200;
 		private static void DrawConsistSpeedLimit()
 		{
 			if (Instance == null) return;
 			if (sortedTrainSet == null) return;
 
 			scanCar = scanDir > 0 ? sortedTrainSet.cars.Last().trainCar : sortedTrainSet.cars.First().trainCar;
-			scanBogie = scanCar.Bogies[(sortedTrainSet[scanCar].forward == (scanDir > 0)) ? scanCar.Bogies.Length - 1 : 0];
+			scanBogie = scanCar.Bogies[(sortedTrainSet[scanCar].forward == (scanDir > 0)) ? 0 : scanCar.Bogies.Length - 1];
 
 			var track = scanBogie.track;
 			if (track == null) return;
@@ -395,7 +399,7 @@ namespace DvMod.HeadsUpDisplay
 				.TakeWhile(ev => ev.span < trainLength);
 
 			var speeds = eventDescriptions.Where(e => e is SpeedLimitEvent).Cast<SpeedLimitEvent>().Select(s => ((float)s.span, (float)s.limit));
-			var limit = (speeds.Count() > 0) ? speeds.Min(m => m.Item2) : 200;
+			var limit = /*(speeds.Count() > 0) ? speeds.Min(s => s.Item2) :*/ lastPassedSpeedLimit;
 			Instance.SetSpeedLimit(limit);
 		}
 
