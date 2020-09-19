@@ -141,6 +141,18 @@ namespace DvMod.HeadsUpDisplay
                 if (PlayerManager.Car.loadedInterior != null)
                     Terminal.Log(DumpHierarchy(PlayerManager.Car.loadedInterior));
             });
+
+            Register("hud.getSpeedLimit", _ =>
+            {
+                var transform = PlayerManager.PlayerTransform;
+                (RailTrack startTrack, EquiPointSet.Point? point) = RailTrack.GetClosest(transform.position);
+                if (startTrack == null)
+                    return;
+                var pointForward = point?.forward ?? Vector3.zero;
+                var pointSpan = point?.span ?? 0;
+                var trackDirection = Vector3.Dot(transform.forward, pointForward) > 0f;
+                Terminal.Log($"{TrackFollower.GetSpeedLimit(startTrack, pointSpan, trackDirection)}");
+            });
         }
     }
 }

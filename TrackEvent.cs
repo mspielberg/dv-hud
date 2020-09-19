@@ -16,7 +16,7 @@ namespace DvMod.HeadsUpDisplay
 
         abstract public TrackEvent WithSpan(double span, bool direction);
 
-        abstract public bool IsForward();
+        abstract public bool Direction { get; }
     }
 
     public class TrackChangeEvent : TrackEvent
@@ -39,7 +39,7 @@ namespace DvMod.HeadsUpDisplay
             return $"{span}: New track {ID}";
         }
 
-        public override bool IsForward() => true;
+        public override bool Direction => true;
     }
 
     public class JunctionEvent : TrackEvent
@@ -65,12 +65,12 @@ namespace DvMod.HeadsUpDisplay
             return $"{span} {direction}: Junction setting {directionString}";
         }
 
-        public override bool IsForward() => direction;
+        public override bool Direction => direction;
     }
 
     public class SpeedLimitEvent : TrackEvent
     {
-        public readonly bool direction;
+        private readonly bool direction;
         public readonly int limit;
 
         public SpeedLimitEvent(double span, bool direction, int limit)
@@ -90,7 +90,7 @@ namespace DvMod.HeadsUpDisplay
             return $"{span} {direction}: Speed limit {limit}";
         }
 
-        public override bool IsForward() => direction;
+        public override bool Direction => direction;
     }
 
     public class DualSpeedLimitEvent : SpeedLimitEvent
@@ -109,10 +109,8 @@ namespace DvMod.HeadsUpDisplay
 
         public override string ToString()
         {
-            return $"{span} {direction}: Junction speed limit {limit}, {rightLimit}";
+            return $"{span} {Direction}: Junction speed limit {limit}, {rightLimit}";
         }
-
-        public override bool IsForward() => direction;
     }
 
     public class GradeEvent : TrackEvent
@@ -134,7 +132,7 @@ namespace DvMod.HeadsUpDisplay
             return $"{span}: Grade {grade}%";
         }
 
-        public override bool IsForward() => true;
+        public override bool Direction => true;
     }
 
     public static class TrackEventsExtension
@@ -146,7 +144,7 @@ namespace DvMod.HeadsUpDisplay
             {
                 double relativeSpan = direction ? ev.span - startSpan : startSpan - ev.span;
                 if (relativeSpan >= 0)
-                    yield return ev.WithSpan(relativeSpan, ev.IsForward() == direction);
+                    yield return ev.WithSpan(relativeSpan, ev.Direction == direction);
             }
         }
 
@@ -155,7 +153,7 @@ namespace DvMod.HeadsUpDisplay
             foreach (var ev in events)
             {
                 // Debug.Log($"setting span to {ev.span} + {offset} = {ev.span+offset}");
-                yield return ev.WithSpan(ev.span + offset, true);
+                yield return ev.WithSpan(ev.span + offset, ev.Direction);
             }
         }
 
@@ -164,7 +162,7 @@ namespace DvMod.HeadsUpDisplay
             return events.Select((ev, i) => {
                 if (ev is DualSpeedLimitEvent e)
                 {
-                    var nextJunctionEvent = events.Skip(i).OfType<JunctionEvent>().FirstOrDefault(ev => ev.IsForward());
+                    var nextJunctionEvent = events.Skip(i).OfType<JunctionEvent>().FirstOrDefault(ev => ev.Direction);
                     if (nextJunctionEvent == null)
                         return ev;
                     if (nextJunctionEvent.junction.selectedBranch == 0)
@@ -185,7 +183,7 @@ namespace DvMod.HeadsUpDisplay
             int prevSpeedLimit = -1;
             foreach (TrackEvent ev in events)
             {
-                if (ev is SpeedLimitEvent sle && sle.IsForward())
+                if (ev is SpeedLimitEvent sle && sle.Direction)
                 {
                     if (sle.limit != prevSpeedLimit)
                     {
