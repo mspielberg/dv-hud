@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace DvMod.HeadsUpDisplay
 {
-    abstract class TrackEvent
+    public abstract class TrackEvent
     {
         public readonly double span;
 
@@ -17,7 +17,7 @@ namespace DvMod.HeadsUpDisplay
         abstract public TrackEvent WithSpan(double span);
     }
 
-    class TrackChangeEvent : TrackEvent
+    public class TrackChangeEvent : TrackEvent
     {
         public readonly TrackID ID;
 
@@ -38,7 +38,7 @@ namespace DvMod.HeadsUpDisplay
         }
     }
 
-    class JunctionEvent : TrackEvent
+    public class JunctionEvent : TrackEvent
     {
         public readonly bool direction;
         public readonly Junction junction;
@@ -63,7 +63,7 @@ namespace DvMod.HeadsUpDisplay
         }
     }
 
-    class SpeedLimitEvent : TrackEvent
+    public class SpeedLimitEvent : TrackEvent
     {
         public readonly bool direction;
         public readonly int limit;
@@ -86,7 +86,7 @@ namespace DvMod.HeadsUpDisplay
         }
     }
 
-    class DualSpeedLimitEvent : SpeedLimitEvent
+    public class DualSpeedLimitEvent : SpeedLimitEvent
     {
         public readonly int rightLimit;
         public DualSpeedLimitEvent(double span, bool direction, int limit, int rightLimit)
@@ -106,7 +106,7 @@ namespace DvMod.HeadsUpDisplay
         }
     }
 
-    class GradeEvent : TrackEvent
+    public class GradeEvent : TrackEvent
     {
         public readonly float grade;
         public GradeEvent(double span, float grade)
@@ -131,7 +131,7 @@ namespace DvMod.HeadsUpDisplay
         }
     }
 
-    static class TrackEventsExtension
+    public static class TrackEventsExtension
     {
         public static IEnumerable<TrackEvent> RelativeFromSpan(this IEnumerable<TrackEvent> events, double startSpan, bool direction)
         {
@@ -206,11 +206,13 @@ namespace DvMod.HeadsUpDisplay
                     }
                 }
                 else
+                {
                     yield return ev;
+                }
             }
         }
 
-        const double GradeChangeInterval = 100;
+        public const double GradeChangeInterval = 100;
 
         public static IEnumerable<TrackEvent> FilterGradeEvents(this IEnumerable<TrackEvent> events, float prevGrade)
         {
@@ -228,14 +230,16 @@ namespace DvMod.HeadsUpDisplay
                     }
                 }
                 else
+                {
                     yield return ev;
+                }
             }
         }
 
         public static IEnumerable<TrackEvent> ExceptUnnamedTracks(this IEnumerable<TrackEvent> events)
         {
             return events.Where(ev =>
-                ev is TrackChangeEvent tce ? !tce.ID.IsGeneric() : true
+                !(ev is TrackChangeEvent tce) || !tce.ID.IsGeneric()
             );
         }
     }
