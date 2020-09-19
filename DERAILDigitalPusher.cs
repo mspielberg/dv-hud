@@ -340,7 +340,7 @@ namespace DvMod.HeadsUpDisplay
 			var events = TrackFollower.FollowTrack(
 				track,
 				startSpan,
-				(scanDir < 0) ? Main.settings.maxEventSpan : -Main.settings.maxEventSpan);// direction ? Main.settings.maxEventSpan : -Main.settings.maxEventSpan);
+				direction ? Main.settings.maxEventSpan : -Main.settings.maxEventSpan);// direction ? Main.settings.maxEventSpan : -Main.settings.maxEventSpan);
 
 			var eventDescriptions = events
 				.ExceptUnnamedTracks()
@@ -565,8 +565,10 @@ namespace DvMod.HeadsUpDisplay
 					if (Instance.MasterLoco.trainset.cars[index] == Instance.MasterLoco) GUI.color = Color.yellow;
 					else
 					{
-						if (Instance.MasterLoco.trainset.cars[index] == Instance.MasterLoco.trainset.firstCar) GUI.color = Color.green;
-						if (Instance.MasterLoco.trainset.cars[index] == Instance.MasterLoco.trainset.lastCar) GUI.color = Color.red;
+						if (Instance.MasterLoco.trainset.cars[index].IsLoco) { }
+						else if (Instance.MasterLoco.trainset.cars[index] == Instance.MasterLoco.trainset.firstCar) GUI.color = Color.green;
+						else if (Instance.MasterLoco.trainset.cars[index] == Instance.MasterLoco.trainset.lastCar) GUI.color = Color.red;
+						else GUI.color = Color.gray;
 					}
 
 					GUILayout.Label(Instance.MasterLoco.trainset.cars[index].ID);
@@ -592,8 +594,10 @@ namespace DvMod.HeadsUpDisplay
 					if (sortedTrainSet.cars[index].trainCar == Instance.MasterLoco) GUI.color = Color.yellow;
 					else
 					{
-						if (sortedTrainSet.cars[index].trainCar == sortedTrainSet.cars.First().trainCar) GUI.color = Color.green;
-						if (sortedTrainSet.cars[index].trainCar == sortedTrainSet.cars.Last().trainCar) GUI.color = Color.red;
+						if (sortedTrainSet.cars[index].trainCar.IsLoco) { }
+						else if (sortedTrainSet.cars[index].trainCar == sortedTrainSet.cars.First().trainCar) GUI.color = Color.green;
+						else if (sortedTrainSet.cars[index].trainCar == sortedTrainSet.cars.Last().trainCar) GUI.color = Color.red;
+						else GUI.color = Color.gray;
 					}
 
 					GUILayout.Label($"{sortedTrainSet.cars[index].trainCar.ID} {((sortedTrainSet.cars[index].trainCar == Instance.MasterLoco) ? "[M]":"")}");
