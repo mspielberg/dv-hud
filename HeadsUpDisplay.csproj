@@ -5,6 +5,7 @@
     <InformationalVersion>0.3.0</InformationalVersion>
     <LangVersion>8.0</LangVersion>
     <Nullable>enable</Nullable>
+	<DVInstallPath>C:\Program Files (x86)\Steam\steamapps\common\Derail Valley\</DVInstallPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,14 +16,45 @@
     <PackageReference Include="RedworkDE.Publicizer" Version="0.2.2" />
     <PublicizeAssembly Include="Assembly-CSharp" Private="True" Readonly="True" />
     <PublicizeAssembly Include="DV.BrakeSystem" Private="True" Readonly="True" />
-    <Reference Include="Assembly-CSharp" />
-    <Reference Include="0Harmony" />
-    <Reference Include="BezierCurves" />
-    <Reference Include="DV.BrakeSystem" />
-    <Reference Include="UnityEngine.CoreModule" />
-    <Reference Include="UnityEngine.IMGUIModule" />
-    <Reference Include="UnityEngine.PhysicsModule" />
-    <Reference Include="UnityEngine.TextRenderingModule" />
-    <Reference Include="UnityModManager" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="0Harmony">
+      <HintPath>bin\Debug\net472\0Harmony.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>bin\Debug\net472\Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="BezierCurves">
+      <HintPath>bin\Debug\net472\BezierCurves.dll</HintPath>
+    </Reference>
+    <Reference Include="DERAILDigital">
+      <HintPath>DERAILDigital.dll</HintPath>
+    </Reference>
+    <Reference Include="DERAILDigitalEmbedded">
+      <HintPath>DERAILDigitalEmbedded.dll</HintPath>
+    </Reference>
+    <Reference Include="DV.BrakeSystem">
+      <HintPath>bin\Debug\net472\DV.BrakeSystem.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>bin\Debug\net472\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>bin\Debug\net472\UnityEngine.IMGUIModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>bin\Debug\net472\UnityEngine.PhysicsModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>bin\Debug\net472\UnityEngine.TextRenderingModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityModManager">
+      <HintPath>bin\Debug\net472\UnityModManager.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="mkdir &quot;$(DVInstallPath)Mods\$(SolutionName)\&quot;&#xD;&#xA;copy $(TargetPath) &quot;$(DVInstallPath)Mods\$(SolutionName)\&quot;&#xD;&#xA;&#xD;&#xA;copy $(SolutionDir)Info.json &quot;$(DVInstallPath)Mods\$(SolutionName)\&quot;" />
+  </Target>
 </Project>
