@@ -1,4 +1,4 @@
-﻿#define DRAW_SCAN_AXES
+﻿//#define DRAW_SCAN_AXES
 
 using System;
 using System.Collections;
@@ -22,7 +22,7 @@ namespace DvMod.HeadsUpDisplay
 		public static AxesSingleton? Instance0 { get; private set; }
 		public static AxesSingleton? Instance1 { get; private set; }
 
-		private void Start()
+		public void Start()
 		{
 			if (Instance0 == null) { Instance0 = this; this.gameObject.name = "DebugAxes0"; }
 			else if (Instance1 == null) { Instance1 = this; this.gameObject.name = "DebugAxes1"; }
@@ -64,18 +64,13 @@ namespace DvMod.HeadsUpDisplay
 			go.GetComponent<Collider>().enabled = false;
 			go.GetComponent<MeshRenderer>().sharedMaterial = new Material(go.GetComponent<MeshRenderer>().sharedMaterial) { color = Color.blue };
 		}
-
-		private void FixedUpdate ()
-		{
-			if (Instance0 != this && Instance1 != this) Destroy(this.gameObject);
-		}
 	}
 	public class ScanIndicator : MonoBehaviour
 	{
 		public static ScanIndicator? Instance0 { get; private set; }
 		public static ScanIndicator? Instance1 { get; private set; }
 
-		private void Start()
+		public void Start()
 		{
 			if (Instance0 == null) { Instance0 = this; this.gameObject.name = "ScanIndicator0"; }
 			else if (Instance1 == null) { Instance1 = this; this.gameObject.name = "ScanIndicator1"; }
@@ -107,11 +102,6 @@ namespace DvMod.HeadsUpDisplay
 			go.GetComponent<Collider>().enabled = false;
 			go.GetComponent<MeshRenderer>().sharedMaterial = new Material(go.GetComponent<MeshRenderer>().sharedMaterial) { color = Color.yellow };
 		}
-
-		private void FixedUpdate()
-		{
-			if (Instance0 != this && Instance1 != this) Destroy(this.gameObject);
-		}
 	}
 #endif
 
@@ -135,10 +125,12 @@ namespace DvMod.HeadsUpDisplay
 				{
 					Coupler coupledTo = ccp.coupledTo;
 
-					// if ccp front to ct back = same
-					// if ccp front to ct front = other
-					// if ccp back to ct back = other
-					bool forward = (ccp.isFrontCoupler && !coupledTo.isFrontCoupler) ? current.forward : !current.forward;
+					// if ccp is front && ct is front = dir is backwards to current (other)
+					// if ccp is front && ct is back = dir is forwards to current (same)
+					// if ccp is back && ct is front = dir is forwards to current (same)
+					// id ccp is back && ct is back = dir is backwards to current (other)
+					bool forward = ((ccp.isFrontCoupler && !coupledTo.isFrontCoupler) || (!ccp.isFrontCoupler && coupledTo.isFrontCoupler)) ? current.forward : !current.forward;
+
 					TrainCar car = coupledTo.train;
 
 					cars.Insert(0, (car, forward));
@@ -158,7 +150,7 @@ namespace DvMod.HeadsUpDisplay
 				else
 				{
 					Coupler coupledTo = ccp.coupledTo;
-					bool forward = (ccp.isFrontCoupler && !coupledTo.isFrontCoupler) ? current.forward : !current.forward;
+					bool forward = ((ccp.isFrontCoupler && !coupledTo.isFrontCoupler) || (!ccp.isFrontCoupler && coupledTo.isFrontCoupler)) ? current.forward : !current.forward;
 					TrainCar car = coupledTo.train;
 					cars.Add((car, forward));
 					current = (car, forward);
@@ -182,7 +174,7 @@ namespace DvMod.HeadsUpDisplay
 		private static SortedTrainSet? sortedTrainSet;
 		private static float trainLength = 0;
 
-		private void Start ()
+		private void Start()
 		{
 			Init();
 			StartCoroutine(PushTrigger());
@@ -197,13 +189,12 @@ namespace DvMod.HeadsUpDisplay
 				{
 					UnityEngine.Debug.Log("[HEADS UP DISPLAY] > [DERAIL Digital] Tablet is null. PushTrigger skip!");
 					tablet = Instance;
-					yield return new WaitForSeconds(0.5f);// null;
+					yield return new WaitForSeconds(1f);
 				}
 				Push();
-				for (int i = 0; i < 60; i++)
-				{
-					if (i == 0) CreateSortedTrainSet();
-				}
+
+				CreateSortedTrainSet();
+
 				yield return null;
 			}
 		}
@@ -240,7 +231,6 @@ namespace DvMod.HeadsUpDisplay
 			{
 				var temp_scanDir = (locoController.reverser > 0) ? 1 : (locoController.reverser < 0) ? -1 : scanDir;
 				var temp_scanCar = temp_scanDir > 0 ? sortedTrainSet.cars.First().trainCar : sortedTrainSet.cars.Last().trainCar;
-				//var temp_scanCar = scanDir > 0 ? scanLoco.trainset.cars.First() : scanLoco.trainset.cars.Last();
 				var temp_scanBogie = temp_scanCar.Bogies[(sortedTrainSet[temp_scanCar].forward == (temp_scanDir > 0)) ? temp_scanCar.Bogies.Length - 1 : 0];
 
 				// Instance0 for ScanCar
@@ -262,7 +252,6 @@ namespace DvMod.HeadsUpDisplay
 				// Instance0 for front
 				if (ScanIndicator.Instance0 != null)
 				{
-
 					ScanIndicator.Instance0.transform.position = temp_scanBogie.transform.position + Vector3.up * 1.9f;
 					ScanIndicator.Instance0.transform.rotation = temp_scanBogie.transform.rotation;
 					if (sortedTrainSet[temp_scanCar].forward != (temp_scanDir > 0)) ScanIndicator.Instance0.transform.Rotate(Vector3.up, 180, Space.Self);
@@ -329,11 +318,11 @@ namespace DvMod.HeadsUpDisplay
 			}
 		}
 
-		static int num = 0;
+		//static int num = 0;
 		private static void DrawUpcomingEvents ()
 		{
-			if (num-- > 0) return;
-			num = 60;
+			//if (num-- > 0) return;
+			//num = 60;
 
 			if (Instance == null) return;
 			if (sortedTrainSet == null) return;
@@ -356,7 +345,7 @@ namespace DvMod.HeadsUpDisplay
 			var eventDescriptions = events
 				.ExceptUnnamedTracks()
 				.ResolveJunctionSpeedLimits()
-				.FilterRedundantSpeedLimits()
+				//.FilterRedundantSpeedLimits()
 				.FilterGradeEvents(currentGrade)
 				.Take(Main.settings.maxEventCount)
 				.TakeWhile(ev => ev.span < Main.settings.maxEventSpan);
@@ -369,7 +358,7 @@ namespace DvMod.HeadsUpDisplay
 			Instance.SetTrackGradeItems(eventDescriptions.Where(e => e is GradeEvent).Cast<GradeEvent>().Select(s => ((float)s.span, (float)s.grade * 10, -1f)).ToArray());
 		}
 
-		private static float lastPassedSpeedLimit = 200;
+		private static float lastPassedSpeedLimit = 0;
 		private static void DrawConsistSpeedLimit()
 		{
 			if (Instance == null) return;
@@ -382,7 +371,7 @@ namespace DvMod.HeadsUpDisplay
 			if (track == null) return;
 
 			var startSpan = scanBogie.traveller.Span;
-			var direction = (sortedTrainSet[scanCar].forward == (scanDir > 0));//!(scanDir >= 0f) ^ (scanBogie.trackDirection > 0);
+			var direction = (scanCar == sortedTrainSet.cars.First().trainCar);
 			var currentGrade = TrackIndexer.Grade(scanBogie.point1) * (direction ? 1 : -1);
 
 			var events = TrackFollower.FollowTrack(
@@ -393,13 +382,13 @@ namespace DvMod.HeadsUpDisplay
 			var eventDescriptions = events
 				.ExceptUnnamedTracks()
 				.ResolveJunctionSpeedLimits()
-				.FilterRedundantSpeedLimits()
+				//.FilterRedundantSpeedLimits()
 				.FilterGradeEvents(currentGrade)
 				.Take(Main.settings.maxEventCount)
 				.TakeWhile(ev => ev.span < trainLength);
 
 			var speeds = eventDescriptions.Where(e => e is SpeedLimitEvent).Cast<SpeedLimitEvent>().Select(s => ((float)s.span, (float)s.limit));
-			var limit = /*(speeds.Count() > 0) ? speeds.Min(s => s.Item2) :*/ lastPassedSpeedLimit;
+			var limit = (speeds.Count() > 0) ? speeds.Min(s => s.Item2) : 5/*lastPassedSpeedLimit*/;
 			Instance.SetSpeedLimit(limit);
 		}
 
@@ -494,7 +483,10 @@ namespace DvMod.HeadsUpDisplay
 
 		private void OnGUI()
 		{
+			Color defaultColor = GUI.color;
 			if (Instance == null) return;
+
+			GUILayout.BeginVertical();
 
 			GUILayout.BeginHorizontal();
 
@@ -555,6 +547,71 @@ namespace DvMod.HeadsUpDisplay
 			GUILayout.EndVertical(); // row last end
 
 			GUILayout.EndHorizontal();
+
+
+			// column spacer
+			GUILayout.BeginHorizontal();
+			GUILayout.BeginVertical(GUILayout.ExpandHeight(true), GUILayout.MaxHeight(1080));
+			GUILayout.FlexibleSpace();
+			GUILayout.EndVertical();
+			GUILayout.EndHorizontal();// column spacer end
+
+			GUILayout.BeginHorizontal();
+			GUILayout.Label("DV TS", GUILayout.Width(30));
+
+			if (Instance.MasterLoco != null && Instance.MasterLoco.trainset.cars != null)
+			{
+				for (int i = 0; i < Instance.MasterLoco.trainset.cars.Count; i++)
+				{
+					int index = Instance.MasterLoco.trainset.cars.Count - 1 - i;
+					GUILayout.BeginVertical(GUI.skin.box, GUILayout.Width(100));
+
+					if (Instance.MasterLoco.trainset.cars[index] == Instance.MasterLoco) GUI.color = Color.yellow;
+					else
+					{
+						if (Instance.MasterLoco.trainset.cars[index] == Instance.MasterLoco.trainset.firstCar) GUI.color = Color.green;
+						if (Instance.MasterLoco.trainset.cars[index] == Instance.MasterLoco.trainset.lastCar) GUI.color = Color.red;
+					}
+
+					GUILayout.Label(Instance.MasterLoco.trainset.cars[index].ID);
+
+					GUI.color = defaultColor;
+
+					GUILayout.EndVertical();
+				}
+			}
+
+			GUILayout.EndHorizontal();
+
+			GUILayout.BeginHorizontal();
+			GUILayout.Label("CBX TS", GUILayout.Width(30));
+
+			if (sortedTrainSet != null && sortedTrainSet.cars != null)
+			{
+				for (int i = 0; i < sortedTrainSet.cars.Count; i++)
+				{
+					int index = sortedTrainSet.cars.Count - 1 - i;
+					GUILayout.BeginVertical(GUI.skin.box, GUILayout.Width(100));
+
+					if (sortedTrainSet.cars[index].trainCar == Instance.MasterLoco) GUI.color = Color.yellow;
+					else
+					{
+						if (sortedTrainSet.cars[index].trainCar == sortedTrainSet.cars.First().trainCar) GUI.color = Color.green;
+						if (sortedTrainSet.cars[index].trainCar == sortedTrainSet.cars.Last().trainCar) GUI.color = Color.red;
+					}
+
+					GUILayout.Label($"{sortedTrainSet.cars[index].trainCar.ID} {((sortedTrainSet.cars[index].trainCar == Instance.MasterLoco) ? "[M]":"")}");
+					GUILayout.Label((sortedTrainSet.cars[index].forward) ? "FWD" : "BWD");
+
+					GUI.color = defaultColor;
+
+					GUILayout.EndVertical();
+				}
+			}
+
+			GUILayout.EndHorizontal();
+
+			GUILayout.EndVertical();
 		}
 #endif
 	}
