@@ -172,11 +172,11 @@ namespace DvMod.HeadsUpDisplay
 
         private float GetAuxReservoirPressure(TrainCar car) =>
             car.IsLoco ? car.brakeSystem.mainReservoirPressure
-            : Registry.GetProvider(RegistryKeys.AllCars, "Aux reservoir pressure").Map(
+            : Registry.GetProvider(car.carType, "Aux reservoir pressure").Map(
                 p => float.Parse(p.GetValue(car))) ?? default;
 
         private float GetBrakeCylinderPressure(TrainCar car) =>
-            Registry.GetProvider(RegistryKeys.AllCars, "Brake cylinder pressure").Map(
+            Registry.GetProvider(car.carType, "Brake cylinder pressure").Map(
                 p => float.Parse(p.GetValue(car))) ?? default;
 
         private IEnumerable<CarGroup> GetCarGroups(IEnumerable<TrainCar> cars, bool individual)
