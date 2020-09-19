@@ -350,15 +350,11 @@ namespace DvMod.HeadsUpDisplay
 				.Take(Main.settings.maxEventCount)
 				.TakeWhile(ev => ev.span < Main.settings.maxEventSpan);
 
-			(float span, float limit)[] speedLimits = eventDescriptions.Where(e => e is SpeedLimitEvent).Cast<SpeedLimitEvent>().Select(s => ((float)s.span, (float)s.limit)).ToArray();
-			var nearLimits = speedLimits.Where(s => s.span < 5);
-			lastPassedSpeedLimit = (nearLimits.Count() > 0) ? nearLimits.Min(s => s.limit) : lastPassedSpeedLimit;
-
-			Instance.SetTrackSpeedItems(speedLimits);
+			Instance.SetTrackSpeedItems(eventDescriptions.Where(e => e is SpeedLimitEvent).Cast<SpeedLimitEvent>().Select(s => ((float)s.span, (float)s.limit)).ToArray());
 			Instance.SetTrackGradeItems(eventDescriptions.Where(e => e is GradeEvent).Cast<GradeEvent>().Select(s => ((float)s.span, (float)s.grade * 10, -1f)).ToArray());
 		}
 
-		private static float lastPassedSpeedLimit = 0;
+		private static float lastSpeedLimit = 0;
 		private static void DrawConsistSpeedLimit()
 		{
 			if (Instance == null) return;
@@ -388,7 +384,7 @@ namespace DvMod.HeadsUpDisplay
 				.TakeWhile(ev => ev.span < trainLength);
 
 			var speeds = eventDescriptions.Where(e => e is SpeedLimitEvent).Cast<SpeedLimitEvent>().Select(s => ((float)s.span, (float)s.limit));
-			var limit = (speeds.Count() > 0) ? speeds.Min(s => s.Item2) : 5/*lastPassedSpeedLimit*/;
+			var limit = lastSpeedLimit = (speeds.Count() > 0) ? speeds.Min(s => s.Item2) : lastSpeedLimit;
 			Instance.SetSpeedLimit(limit);
 		}
 
