@@ -5,6 +5,13 @@ namespace DvMod.HeadsUpDisplay
 {
     public static class TrackFollower
     {
+        public static SpeedLimitEvent? GetSpeedLimit(RailTrack track, double startSpan)
+        {
+            return FollowTrack(track, startSpan, float.NegativeInfinity)
+                .OfType<SpeedLimitEvent>()
+                .FirstOrDefault(ev => !ev.IsForward());
+        }
+
         public static IEnumerable<TrackEvent> FollowTrack(RailTrack track, double startSpan, double distance)
         {
             const int MAX_ITERATIONS = 100;
