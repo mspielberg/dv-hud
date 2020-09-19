@@ -451,7 +451,7 @@ namespace DvMod.HeadsUpDisplay
 
         private string GetJunctionEventDescription(JunctionEvent e)
         {
-            var directionText = e.selectedBranch == 0 ? "Left" : "Right";
+            var directionText = e.junction.selectedBranch == 0 ? "Left" : "Right";
             var color = "white";
             var car = GetCarOnJunction(e.junction);
             string carText = "";

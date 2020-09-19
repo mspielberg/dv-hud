@@ -42,7 +42,6 @@ namespace DvMod.HeadsUpDisplay
     {
         public readonly bool direction;
         public readonly Junction junction;
-        public int selectedBranch => junction.selectedBranch;
 
         public JunctionEvent(double span, bool direction, Junction junction)
         : base(span)
@@ -58,7 +57,7 @@ namespace DvMod.HeadsUpDisplay
 
         public override string ToString()
         {
-            var directionString = selectedBranch == 0 ? "left" : "right";
+            var directionString = junction.selectedBranch == 0 ? "left" : "right";
             return $"{span} {direction}: Junction setting {directionString}";
         }
     }
