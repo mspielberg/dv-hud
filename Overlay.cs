@@ -1,4 +1,5 @@
 using DV.Logic.Job;
+using DV.PointSet;
 using DV.Simulation.Brake;
 using System;
 using System.Collections;
@@ -130,7 +131,6 @@ namespace DvMod.HeadsUpDisplay
                 GUILayout.EndVertical();
                 GUILayout.EndHorizontal();
             }
-
         }
 
         private readonly struct CarGroup
@@ -453,7 +453,8 @@ namespace DvMod.HeadsUpDisplay
         {
             var description = TrackFollower.DescribeJunctionBranches(e.junction);
             var car = GetCarOnJunction(e.junction);
-            var carText = (car is TrainCar && car != PlayerManager.Car) ? $" <color=orange>({car.ID})</color>" : "";
+            var carText = (car is Car && car != PlayerManager.Car.logicCar)
+                ? $" <color=orange>({car.ID})</color>" : "";
             return description + carText;
         }
 
@@ -521,28 +522,33 @@ namespace DvMod.HeadsUpDisplay
             GUILayout.EndHorizontal();
         }
 
-        public static TrainCar? GetCarOnJunction(Junction junction)
+        public static Car? GetCarOnJunction(Junction junction)
         {
-            const double SpanTolerance = 7.0;
-            static TrainCar? GetCarOnBranchEnd(Junction.Branch branch)
+            static double DistanceToBranch(Junction.Branch branch, TrainCar car)
             {
-                var track = branch.track;
-                var logicTrack = track.logicTrack;
-                var cars = logicTrack.GetCarsFullyOnTrack().Concat(logicTrack.GetCarsPartiallyOnTrack());
-                var bogies = cars.SelectMany(c => TrainCar.logicCarToTrainCar[c].Bogies).Where(b => b.track == track);
-                if (branch.first)
-                {
-                    return bogies.FirstOrDefault(b => b.point1.span < SpanTolerance || b.point2.span < SpanTolerance)?.Car;
-                }
-                else
-                {
-                    return bogies.FirstOrDefault(b => b.point1.span > (logicTrack.length - SpanTolerance) ||
-                       b.point2.span > (logicTrack.length - SpanTolerance))?.Car;
-                }
+                return car.Bogies
+                    .Where(bogie => bogie.track == branch.track)
+                    .Min(bogie => branch.first ? bogie.traveller.Span : branch.track.logicTrack.length - bogie.traveller.Span);
             }
 
-            var carOnOutBranch = junction.outBranches.Select(GetCarOnBranchEnd).FirstOrDefault(c => c != null);
-            return carOnOutBranch ?? GetCarOnBranchEnd(junction.inBranch);
+            static (double, Car)? ClosestCar(Junction.Branch branch)
+            {
+                var logicTrack = branch.track.logicTrack;
+                var allCars = logicTrack.GetCarsFullyOnTrack().Concat(logicTrack.GetCarsPartiallyOnTrack());
+                if (!allCars.Any())
+                    return null;
+                var byDistance = allCars.ToDictionary(car => DistanceToBranch(branch, TrainCar.logicCarToTrainCar[car]));
+                var minDistance = byDistance.Keys.Min();
+                return (minDistance, byDistance[minDistance]);
+            }
+
+            const double SpanTolerance = 7.0;
+            var branches = junction.outBranches.Append(junction.inBranch);
+            var closest = branches.Select(ClosestCar).OfType<(double, Car)>().OrderBy(p => p.Item1).FirstOrDefault();
+
+            if (closest.Item1 < SpanTolerance && closest.Item2 != null)
+                return closest.Item2;
+            return null;
         }
     }
 }
