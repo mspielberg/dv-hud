@@ -452,16 +452,10 @@ namespace DvMod.HeadsUpDisplay
 
         private string GetJunctionEventDescription(JunctionEvent e)
         {
-            var directionText = e.junction.selectedBranch == 0 ? "Left" : "Right";
-            var color = "white";
+            var description = TrackFollower.DescribeJunctionBranches(e.junction);
             var car = GetCarOnJunction(e.junction);
-            string carText = "";
-            if (car is TrainCar && car != PlayerManager.Car)
-            {
-                color = "orange";
-                carText = $" ({car.ID})";
-            }
-            return $"<color={color}>{directionText}{carText}</color>";
+            var carText = (car is TrainCar && car != PlayerManager.Car) ? $" <color=orange>({car.ID})</color>" : "";
+            return description + carText;
         }
 
         private string GetSpeedLimitEventDescription(SpeedLimitEvent e)

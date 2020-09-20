@@ -1,3 +1,5 @@
+using DV.Logic.Job;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -5,11 +7,13 @@ namespace DvMod.HeadsUpDisplay
 {
     public static class TrackFollower
     {
-        public static SpeedLimitEvent? GetSpeedLimit(RailTrack track, double startSpan)
+        public static float? GetSpeedLimit(RailTrack track, double startSpan, bool direction)
         {
-            return FollowTrack(track, startSpan, float.NegativeInfinity)
+            var events = FollowTrack(track, startSpan, direction ? float.NegativeInfinity : float.PositiveInfinity);
+            return events
                 .OfType<SpeedLimitEvent>()
-                .FirstOrDefault(ev => !ev.IsForward());
+                .FirstOrDefault(ev => !ev.Direction)
+                ?.limit;
         }
 
         public static IEnumerable<TrackEvent> FollowTrack(RailTrack track, double startSpan, double distance)
@@ -56,7 +60,9 @@ namespace DvMod.HeadsUpDisplay
                         if (!nextBranch.first)
                             distance *= -1;
                         nextJunction = track.outJunction;
-                    } else {
+                    }
+                    else
+                    {
                         yield break;
                     }
                 }
@@ -70,6 +76,60 @@ namespace DvMod.HeadsUpDisplay
                 track = nextBranch.track;
                 startSpan = nextBranch.first ? 0.0 : nextBranch.track.GetPointSet().span;
             }
+        }
+
+        private static readonly Func<TrackID, string> SubYardSelector = (TrackID id) => $"{id.yardId}-{id.subYardId}";
+        private static readonly Func<TrackID, string> TrackSelector = (TrackID id) => id.TrackPartOnly;
+
+        public static string DescribeJunctionBranches(Junction junction)
+        {
+            var left = DescribeBranch(junction.outBranches[0]);
+            var right = DescribeBranch(junction.outBranches[1]);
+            if (left == null || right == null)
+                return junction.selectedBranch == 0 ? "<<<" : ">>>";
+
+            var selector =
+                (left.yardId != right.yardId || left.subYardId != right.subYardId) ? SubYardSelector :
+                TrackSelector;
+
+            return junction.selectedBranch == 0
+                ? $"<color=lime>{selector(left)}</color> <<< {selector(right)}"
+                : $"{selector(left)} >>> <color=lime>{selector(right)}</color>";
+        }
+
+        private static IEnumerable<Junction.Branch> GetNextBranches(Junction.Branch start) =>
+            (start.first ? start.track.GetAllOutBranches() : start.track.GetAllInBranches()) ?? Enumerable.Empty<Junction.Branch>();
+
+        private static readonly Dictionary<Junction.Branch, TrackID?> descriptions = new Dictionary<Junction.Branch, TrackID?>();
+
+        private static TrackID? DescribeBranch(Junction.Branch startBranch)
+        {
+            if (descriptions.TryGetValue(startBranch, out var trackID))
+                return trackID;
+
+            // Main.DebugLog($"Starting BFS at {startBranch.track.logicTrack.ID}");
+            var visited = new HashSet<RailTrack>();
+            var queue = new Queue<Junction.Branch>(GetNextBranches(startBranch));
+            while (queue.TryDequeue(out var branch))
+            {
+                // Main.DebugLog($"Examining {branch}, track={branch.track}, logicTrack={branch.track.logicTrack}, ID={branch.track.logicTrack.ID}");
+                trackID = branch.track.logicTrack.ID;
+                if (!trackID.IsGeneric())
+                {
+                    descriptions[startBranch] = trackID;
+                    return trackID;
+                }
+                // avoid cycles
+                if (visited.Contains(branch.track))
+                    continue;
+                visited.Add(branch.track);
+                foreach (var next in GetNextBranches(branch))
+                    queue.Enqueue(next);
+            }
+            // Main.DebugLog($"BFS ended without result");
+            descriptions[startBranch] = null;
+            // Main.DebugLog($"returning null");
+            return null;
         }
     }
 }
