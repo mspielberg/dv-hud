@@ -183,9 +183,9 @@ namespace DvMod.HeadsUpDisplay
             int prevSpeedLimit = -1;
             foreach (TrackEvent ev in events)
             {
-                if (ev is SpeedLimitEvent sle && sle.Direction)
+                if (ev is SpeedLimitEvent sle)
                 {
-                    if (sle.limit != prevSpeedLimit)
+                    if (sle.Direction && sle.limit != prevSpeedLimit)
                     {
                         prevSpeedLimit = sle.limit;
                         yield return sle;
