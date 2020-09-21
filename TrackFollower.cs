@@ -2,6 +2,7 @@ using DV.Logic.Job;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace DvMod.HeadsUpDisplay
 {
@@ -9,7 +10,7 @@ namespace DvMod.HeadsUpDisplay
     {
         public static float? GetSpeedLimit(RailTrack track, double startSpan, bool direction)
         {
-            var events = FollowTrack(track, startSpan, direction ? float.NegativeInfinity : float.PositiveInfinity);
+            var events = FollowTrack(track, startSpan, direction ? /*float.NegativeInfinity*/-1000 : /*float.PositiveInfinity*/1000);
             return events
                 .OfType<SpeedLimitEvent>()
                 .FirstOrDefault(ev => !ev.Direction)
@@ -110,8 +111,10 @@ namespace DvMod.HeadsUpDisplay
             // Main.DebugLog($"Starting BFS at {startBranch.track.logicTrack.ID}");
             var visited = new HashSet<RailTrack>();
             var queue = new Queue<Junction.Branch>(GetNextBranches(startBranch));
-            while (queue.TryDequeue(out var branch))
+            Junction.Branch? branch;
+            while (queue.Count > 0)
             {
+                branch = queue.Dequeue();
                 // Main.DebugLog($"Examining {branch}, track={branch.track}, logicTrack={branch.track.logicTrack}, ID={branch.track.logicTrack.ID}");
                 trackID = branch.track.logicTrack.ID;
                 if (!trackID.IsGeneric())

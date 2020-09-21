@@ -318,12 +318,8 @@ namespace DvMod.HeadsUpDisplay
 			}
 		}
 
-		//static int num = 0;
 		private static void DrawUpcomingEvents ()
 		{
-			//if (num-- > 0) return;
-			//num = 60;
-
 			if (Instance == null) return;
 			if (sortedTrainSet == null) return;
 
@@ -334,27 +330,37 @@ namespace DvMod.HeadsUpDisplay
 			if (track == null) return;
 
 			var startSpan = scanBogie.traveller.Span;
-			var direction = (sortedTrainSet[scanCar].forward == (scanDir > 0));// !(scanDir >= 0f) ^ (scanBogie.trackDirection > 0);
+			var direction = !(sortedTrainSet[scanCar].forward == (scanDir > 0)) ^ (scanBogie.trackDirection > 0); // !(scanDir >= 0f) ^ (scanBogie.trackDirection > 0);
 			var currentGrade = TrackIndexer.Grade(scanBogie.point1) * (direction ? 1 : -1);
+			var scanDistance = Instance.TrackPlannerDisplayDistance + 100;
 
 			var events = TrackFollower.FollowTrack(
 				track,
 				startSpan,
-				direction ? Main.settings.maxEventSpan : -Main.settings.maxEventSpan);// direction ? Main.settings.maxEventSpan : -Main.settings.maxEventSpan);
+				direction ? scanDistance : -scanDistance);
 
 			var eventDescriptions = events
 				.ExceptUnnamedTracks()
 				.ResolveJunctionSpeedLimits()
-				//.FilterRedundantSpeedLimits()
+				.FilterRedundantSpeedLimits()
 				.FilterGradeEvents(currentGrade)
 				.Take(Main.settings.maxEventCount)
 				.TakeWhile(ev => ev.span < Main.settings.maxEventSpan);
 
 			Instance.SetTrackSpeedItems(eventDescriptions.Where(e => e is SpeedLimitEvent).Cast<SpeedLimitEvent>().Select(s => ((float)s.span, (float)s.limit)).ToArray());
 			Instance.SetTrackGradeItems(eventDescriptions.Where(e => e is GradeEvent).Cast<GradeEvent>().Select(s => ((float)s.span, (float)s.grade * 10, -1f)).ToArray());
+
+			var junctionEvents = eventDescriptions.Where(e => e is JunctionEvent);
+			Junction? nextJunction = null;
+			if (junctionEvents.Any())
+			{
+				nextJunction = ((JunctionEvent)junctionEvents.Aggregate((a, b) => a.span < b.span ? a : b)).junction;
+				Instance.SetTrackJunctionItems(junctionEvents.Cast<JunctionEvent>().Select(s => ((float)(s.span - 1.3), (float)0)).ToArray());
+			}
+			Instance.NextJunction = nextJunction;
+			Instance.SetNextWyeDir((nextJunction == null) ? WyeDirection.NA : (nextJunction.selectedBranch == 0) ? WyeDirection.Left : WyeDirection.Right);
 		}
 
-		private static float lastSpeedLimit = 0;
 		private static void DrawConsistSpeedLimit()
 		{
 			if (Instance == null) return;
@@ -367,7 +373,7 @@ namespace DvMod.HeadsUpDisplay
 			if (track == null) return;
 
 			var startSpan = scanBogie.traveller.Span;
-			var direction = (scanCar == sortedTrainSet.cars.First().trainCar);
+			var direction = !(sortedTrainSet[scanCar].forward == (scanDir > 0)) ^ (scanBogie.trackDirection > 0);
 			var currentGrade = TrackIndexer.Grade(scanBogie.point1) * (direction ? 1 : -1);
 
 			var events = TrackFollower.FollowTrack(
@@ -378,13 +384,14 @@ namespace DvMod.HeadsUpDisplay
 			var eventDescriptions = events
 				.ExceptUnnamedTracks()
 				.ResolveJunctionSpeedLimits()
-				//.FilterRedundantSpeedLimits()
+				.FilterRedundantSpeedLimits()
 				.FilterGradeEvents(currentGrade)
 				.Take(Main.settings.maxEventCount)
 				.TakeWhile(ev => ev.span < trainLength);
 
 			var speeds = eventDescriptions.Where(e => e is SpeedLimitEvent).Cast<SpeedLimitEvent>().Select(s => ((float)s.span, (float)s.limit));
-			var limit = lastSpeedLimit = (speeds.Count() > 0) ? speeds.Min(s => s.Item2) : lastSpeedLimit;
+			var limit = (speeds.Count() > 0) ? speeds.Min(s => s.Item2) : 200;
+			limit = Mathf.Min(limit, TrackFollower.GetSpeedLimit(track, startSpan, direction) ?? 0f);
 			Instance.SetSpeedLimit(limit);
 		}
 
