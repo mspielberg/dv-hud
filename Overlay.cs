@@ -1,5 +1,5 @@
-using Cybex;
 using DV.Logic.Job;
+using DV.PointSet;
 using DV.Simulation.Brake;
 using System;
 using System.Collections;
@@ -96,14 +96,20 @@ namespace DvMod.HeadsUpDisplay
 
         private void DrawDrivingInfoWindow(int windowID)
         {
-            DrawCurrentCarInfo();
+            GUILayout.BeginVertical();
 
+            GUILayout.BeginHorizontal();
+
+            DrawCurrentCarInfo();
             if (Main.settings.showTrackInfo)
                 DrawUpcomingEvents();
+
+            GUILayout.EndHorizontal();
 
             if (Main.settings.showCarList)
                 DrawCarList();
 
+            GUILayout.EndVertical();
             GUI.DragWindow();
         }
 
@@ -112,6 +118,7 @@ namespace DvMod.HeadsUpDisplay
             if (!PlayerManager.Car)
                 return;
 
+            GUILayout.BeginVertical();
             foreach (var group in Registry.GetProviders(PlayerManager.Car.carType).Where(g => g.Any(dp => dp.Enabled)))
             {
                 GUILayout.BeginHorizontal("box");
@@ -131,7 +138,7 @@ namespace DvMod.HeadsUpDisplay
                 GUILayout.EndVertical();
                 GUILayout.EndHorizontal();
             }
-
+            GUILayout.EndVertical();
         }
 
         private readonly struct CarGroup
@@ -180,11 +187,11 @@ namespace DvMod.HeadsUpDisplay
 
         private float GetAuxReservoirPressure(TrainCar car) =>
             car.IsLoco ? car.brakeSystem.mainReservoirPressure
-            : Registry.GetProvider(car.carType, "Aux reservoir pressure").Map(
+            : Registry.GetProvider(car.carType, "Aux reservoir").Map(
                 p => float.Parse(p.GetValue(car))) ?? default;
 
         private float GetBrakeCylinderPressure(TrainCar car) =>
-            Registry.GetProvider(car.carType, "Brake cylinder pressure").Map(
+            Registry.GetProvider(car.carType, "Brake cylinder").Map(
                 p => float.Parse(p.GetValue(car))) ?? default;
 
         private IEnumerable<CarGroup> GetCarGroups(IEnumerable<TrainCar> cars, bool individual)
@@ -274,9 +281,10 @@ namespace DvMod.HeadsUpDisplay
         private const char EnDash = '\u2013';
         private void DrawCarList()
         {
-            if (!PlayerManager.LastLoco)
+            var trainset = PlayerManager.Car?.trainset ?? PlayerManager.LastLoco?.trainset;
+            if (trainset == null)
                 return;
-            IEnumerable<TrainCar> cars = PlayerManager.LastLoco.trainset.cars.AsReadOnly();
+            IEnumerable<TrainCar> cars = trainset.cars.AsReadOnly();
             if (!cars.First().IsLoco && cars.Last().IsLoco)
                 cars = cars.Reverse();
 
@@ -454,7 +462,8 @@ namespace DvMod.HeadsUpDisplay
         {
             var description = TrackFollower.DescribeJunctionBranches(e.junction);
             var car = GetCarOnJunction(e.junction);
-            var carText = (car is TrainCar && car != PlayerManager.Car) ? $" <color=orange>({car.ID})</color>" : "";
+            var carText = (car is Car && car != PlayerManager.Car.logicCar)
+                ? $" <color=orange>({car.ID})</color>" : "";
             return description + carText;
         }
 
@@ -503,13 +512,16 @@ namespace DvMod.HeadsUpDisplay
                         SpeedLimitEvent e => (e.span, GetSpeedLimitEventDescription(e)),
                         GradeEvent e => (e.span, $"{e.grade:F1} %"),
                         _ => (0.0, $"Unknown event: {ev}"),
-                    });
+                    })
+                .ToList();
 
             GUILayout.BeginHorizontal("box");
 
             GUILayout.BeginVertical(GUILayout.MaxWidth(50));
             foreach ((double span, string desc) in eventDescriptions)
                 GUILayout.Label($"{Math.Round(span / 10) * 10:F0} m", rightAlign);
+            for (int i = eventDescriptions.Count; i < Main.settings.maxEventCount; i++)
+                GUILayout.Label(" ");
             GUILayout.EndVertical();
 
             GUILayout.Space(ColumnSpacing);
@@ -517,33 +529,40 @@ namespace DvMod.HeadsUpDisplay
             GUILayout.BeginVertical();
             foreach ((double span, string desc) in eventDescriptions)
                 GUILayout.Label(desc, richText);
+            for (int i = eventDescriptions.Count; i < Main.settings.maxEventCount; i++)
+                GUILayout.Label(" ");
             GUILayout.EndVertical();
 
             GUILayout.EndHorizontal();
         }
 
-        public static TrainCar? GetCarOnJunction(Junction junction)
+        public static Car? GetCarOnJunction(Junction junction)
         {
-            const double SpanTolerance = 7.0;
-            static TrainCar? GetCarOnBranchEnd(Junction.Branch branch)
+            static double DistanceToBranch(Junction.Branch branch, TrainCar car)
             {
-                var track = branch.track;
-                var logicTrack = track.logicTrack;
-                var cars = logicTrack.GetCarsFullyOnTrack().Concat(logicTrack.GetCarsPartiallyOnTrack());
-                var bogies = cars.SelectMany(c => TrainCar.logicCarToTrainCar[c].Bogies).Where(b => b.track == track);
-                if (branch.first)
-                {
-                    return bogies.FirstOrDefault(b => b.point1.span < SpanTolerance || b.point2.span < SpanTolerance)?.Car;
-                }
-                else
-                {
-                    return bogies.FirstOrDefault(b => b.point1.span > (logicTrack.length - SpanTolerance) ||
-                       b.point2.span > (logicTrack.length - SpanTolerance))?.Car;
-                }
+                return car.Bogies
+                    .Where(bogie => bogie.track == branch.track)
+                    .Min(bogie => branch.first ? bogie.traveller.Span : branch.track.logicTrack.length - bogie.traveller.Span);
             }
 
-            var carOnOutBranch = junction.outBranches.Select(GetCarOnBranchEnd).FirstOrDefault(c => c != null);
-            return carOnOutBranch ?? GetCarOnBranchEnd(junction.inBranch);
+            static (double, Car)? ClosestCar(Junction.Branch branch)
+            {
+                var logicTrack = branch.track.logicTrack;
+                var allCars = logicTrack.GetCarsFullyOnTrack().Concat(logicTrack.GetCarsPartiallyOnTrack());
+                if (!allCars.Any())
+                    return null;
+                var byDistance = allCars.ToDictionary(car => DistanceToBranch(branch, TrainCar.logicCarToTrainCar[car]));
+                var minDistance = byDistance.Keys.Min();
+                return (minDistance, byDistance[minDistance]);
+            }
+
+            const double SpanTolerance = 7.0;
+            var branches = junction.outBranches.Append(junction.inBranch);
+            var closest = branches.Select(ClosestCar).OfType<(double, Car)>().OrderBy(p => p.Item1).FirstOrDefault();
+
+            if (closest.Item1 < SpanTolerance && closest.Item2 != null)
+                return closest.Item2;
+            return null;
         }
     }
 }

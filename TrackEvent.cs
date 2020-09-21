@@ -159,22 +159,32 @@ namespace DvMod.HeadsUpDisplay
 
         public static IEnumerable<TrackEvent> ResolveJunctionSpeedLimits(this IEnumerable<TrackEvent> events)
         {
-            return events.Select((ev, i) => {
+            int i = 1;
+            foreach (var ev in events)
+            {
                 if (ev is DualSpeedLimitEvent e)
                 {
+                    if (!e.Direction)
+                        continue;
                     var nextJunctionEvent = events.Skip(i).OfType<JunctionEvent>().FirstOrDefault(ev => ev.Direction);
                     if (nextJunctionEvent == null)
-                        return ev;
-                    if (nextJunctionEvent.junction.selectedBranch == 0)
-                        return new SpeedLimitEvent(e.span, true, e.limit);
+                    {
+                        yield return ev;
+                    }
                     else
-                        return new SpeedLimitEvent(e.span, true, e.rightLimit);
+                    {
+                        if (nextJunctionEvent.junction.selectedBranch == 0)
+                            yield return new SpeedLimitEvent(e.span, true, e.limit);
+                        else
+                            yield return new SpeedLimitEvent(e.span, true, e.rightLimit);
+                    }
                 }
                 else
                 {
-                    return ev;
+                    yield return ev;
                 }
-            });
+                i++;
+            }
         }
 
         /// <summary>Filters out reversed and duplicate speed limit events.</summary>
