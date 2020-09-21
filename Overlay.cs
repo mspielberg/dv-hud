@@ -133,7 +133,7 @@ namespace DvMod.HeadsUpDisplay
                 foreach (var dp in group)
                 {
                     if (dp.Enabled)
-                        GUILayout.Label(dp.GetValue(PlayerManager.Car), noWrap);
+                        GUILayout.Label(dp.GetFormatted(PlayerManager.Car), noWrap);
                 }
                 GUILayout.EndVertical();
                 GUILayout.EndHorizontal();
@@ -188,11 +188,11 @@ namespace DvMod.HeadsUpDisplay
         private float GetAuxReservoirPressure(TrainCar car) =>
             car.IsLoco ? car.brakeSystem.mainReservoirPressure
             : Registry.GetProvider(car.carType, "Aux reservoir").Map(
-                p => float.Parse(p.GetValue(car))) ?? default;
+                p => p.GetValue(car)) ?? default;
 
         private float GetBrakeCylinderPressure(TrainCar car) =>
             Registry.GetProvider(car.carType, "Brake cylinder").Map(
-                p => float.Parse(p.GetValue(car))) ?? default;
+                p => p.GetValue(car)) ?? default;
 
         private IEnumerable<CarGroup> GetCarGroups(IEnumerable<TrainCar> cars, bool individual)
         {

@@ -44,11 +44,15 @@ namespace DvMod.HeadsUpDisplay
             return $"PushProvider {ID}: {Label}: {values.Aggregate("", (a,b) => a + b.ToString())}";
         }
 
-        public string GetValue(TrainCar car)
+        public float GetValue(TrainCar car)
         {
-            float value = 0f / 0f;
-            values.TryGetValue(car.ID, out value);
-            return formatter(value);
+            values.TryGetValue(car.ID, out var value);
+            return value;
+        }
+
+        public string GetFormatted(TrainCar car)
+        {
+            return formatter(GetValue(car));
         }
 
         public void SetValue(TrainCar car, float value)
@@ -61,9 +65,8 @@ namespace DvMod.HeadsUpDisplay
         public void MixSmoothedValue(TrainCar car, float value)
         {
             // Main.DebugLog($"Mixing value {value} for {car.ID} into {this}");
-            float oldValue = 0f;
-            values.TryGetValue(car.ID, out oldValue);
-            SetValue(car, oldValue * alpha + value * (1f - alpha));
+            values.TryGetValue(car.ID, out var oldValue);
+            SetValue(car, (oldValue * alpha) + (value * (1f - alpha)));
             // Main.DebugLog($"After mix: {this}");
         }
     }

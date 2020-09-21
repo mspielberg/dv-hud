@@ -9,7 +9,8 @@ namespace DvMod.HeadsUpDisplay
     {
         string Label { get; }
         bool Enabled { get; }
-        string GetValue(TrainCar car);
+        float GetValue(TrainCar car);
+        string GetFormatted(TrainCar car);
     }
 
     public readonly struct QueryDataProvider : DataProvider
@@ -28,9 +29,14 @@ namespace DvMod.HeadsUpDisplay
             this.enable = enable;
         }
 
-        public string GetValue(TrainCar car)
+        public float GetValue(TrainCar car)
         {
-            return formatter(provider(car));
+            return provider(car);
+        }
+
+        public string GetFormatted(TrainCar car)
+        {
+            return formatter(GetValue(car));
         }
     }
 

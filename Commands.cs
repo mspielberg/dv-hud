@@ -138,10 +138,12 @@ namespace DvMod.HeadsUpDisplay
 
             Register("hud.dumpInterior", _ =>
             {
-                if (PlayerManager.Car == null)
-                    return;
-                if (PlayerManager.Car.loadedInterior != null)
-                    Terminal.Log(DumpHierarchy(PlayerManager.Car.loadedInterior));
+                if (PlayerManager.Car?.loadedInterior != null)
+                {
+                    var dump = DumpHierarchy(PlayerManager.Car.loadedInterior);
+                    Terminal.Log(dump);
+                    Debug.Log(dump);
+                }
             });
 
             Register("hud.getSpeedLimit", _ =>
