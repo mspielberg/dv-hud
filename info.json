@@ -2,7 +2,7 @@
 	"Id": "HeadsUpDisplay",
 	"DisplayName": "Heads-up Display",
 	"Author": "Zeibach",
-	"Version": "0.3.0",
+	"Version": "0.4.0",
 	"LoadAfter": [ "DERAILDigital" ],
 	"AssemblyName": "HeadsUpDisplay.dll",
 	"EntryMethod": "DvMod.HeadsUpDisplay.Main.Load",
