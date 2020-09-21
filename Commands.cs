@@ -21,6 +21,8 @@ namespace DvMod.HeadsUpDisplay
 
         private static void Register(string name, Action<CommandArg[]> proc)
         {
+            if (Terminal.Shell == null)
+                return;
             if (Terminal.Shell.Commands.Remove(name.ToUpper()))
                 Main.DebugLog($"replacing existing command {name}");
             else
