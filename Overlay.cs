@@ -1,5 +1,4 @@
 using DV.Logic.Job;
-using DV.PointSet;
 using DV.Simulation.Brake;
 using System;
 using System.Collections;
@@ -119,20 +118,20 @@ namespace DvMod.HeadsUpDisplay
                 return;
 
             GUILayout.BeginVertical();
-            foreach (var group in Registry.GetProviders(PlayerManager.Car.carType).Where(g => g.Any(dp => dp.Enabled)))
+            foreach (var group in Registry.GetProviders(PlayerManager.Car.carType).Where(g => g.Any(Main.settings.IsEnabled)))
             {
                 GUILayout.BeginHorizontal("box");
                 GUILayout.BeginVertical();
                 foreach (var dp in group)
                 {
-                    if (dp.Enabled)
+                    if (Main.settings.IsEnabled(dp))
                         GUILayout.Label(dp.Label, noWrap);
                 }
                 GUILayout.EndVertical();
                 GUILayout.BeginVertical();
                 foreach (var dp in group)
                 {
-                    if (dp.Enabled)
+                    if (Main.settings.IsEnabled(dp))
                         GUILayout.Label(dp.GetFormatted(PlayerManager.Car), noWrap);
                 }
                 GUILayout.EndVertical();
@@ -186,13 +185,16 @@ namespace DvMod.HeadsUpDisplay
         }
 
         private float GetAuxReservoirPressure(TrainCar car) =>
-            car.IsLoco ? car.brakeSystem.mainReservoirPressure
-            : Registry.GetProvider(car.carType, "Aux reservoir").Map(
-                p => p.GetValue(car)) ?? default;
+            car.IsLoco
+            ? car.brakeSystem.mainReservoirPressure
+            : Registry.GetProvider(car.carType, "Aux reservoir")
+                .FlatMap(p => p.GetValue(car))
+                ?? default;
 
         private float GetBrakeCylinderPressure(TrainCar car) =>
-            Registry.GetProvider(car.carType, "Brake cylinder").Map(
-                p => p.GetValue(car)) ?? default;
+            Registry.GetProvider(car.carType, "Brake cylinder")
+                .FlatMap(p => p.GetValue(car))
+                ?? default;
 
         private IEnumerable<CarGroup> GetCarGroups(IEnumerable<TrainCar> cars, bool individual)
         {

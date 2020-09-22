@@ -1,50 +1,34 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 
 namespace DvMod.HeadsUpDisplay
 {
     using Formatter = Func<float, string>;
-    public class PushProvider : DataProvider
+    public class PushProvider : IDataProvider
     {
-        static Dictionary<string, PushProvider> providers = new Dictionary<string, PushProvider>();
-
-        public static void SetValue(string label, TrainCar car, float value)
-        {
-            providers[label].SetValue(car, value);
-        }
-
-        //ConditionalWeakTable<TrainCar, object> values = new ConditionalWeakTable<TrainCar, object>();
-        Dictionary<string, float> values = new Dictionary<string, float>();
+        private readonly Dictionary<string, float> values = new Dictionary<string, float>();
 
         public string Label { get; }
-        public bool Enabled { get { return enabled(); } }
+        public IComparable Order { get; }
 
-        private Func<bool> enabled;
-        private Formatter formatter;
+        private readonly Formatter formatter;
 
         public float alpha = 0.1f;
 
-        static int nextID = 0;
-
-        int ID;
-
-        public PushProvider(string label, Func<bool> enabled, Formatter formatter)
+        public PushProvider(string label, Formatter formatter, IComparable? order = null)
         {
-            this.ID = nextID++;
             this.Label = label;
-            this.enabled = enabled;
+            this.Order = order ?? label;
             this.formatter = formatter;
-            providers[label] = this;
         }
 
         public override string ToString()
         {
-            return $"PushProvider {ID}: {Label}: {values.Aggregate("", (a,b) => a + b.ToString())}";
+            return $"PushProvider {Label}: {values.Aggregate("", (a,b) => a + b.ToString())}";
         }
 
-        public float GetValue(TrainCar car)
+        public float? GetValue(TrainCar car)
         {
             values.TryGetValue(car.ID, out var value);
             return value;
@@ -52,7 +36,7 @@ namespace DvMod.HeadsUpDisplay
 
         public string GetFormatted(TrainCar car)
         {
-            return formatter(GetValue(car));
+            return formatter(GetValue(car) ?? default);
         }
 
         public void SetValue(TrainCar car, float value)

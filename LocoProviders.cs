@@ -1,19 +1,17 @@
 using HarmonyLib;
-using System;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace DvMod.HeadsUpDisplay
 {
-    static class LocoProviders
+    internal static class LocoProviders
     {
         public static PushProvider tractiveEffortProvider = new PushProvider(
-            "Tractive effort", () => Main.settings.ShowTractiveEffort, f => $"{(f / 1000).ToString("F0")} kN");
+            "Tractive effort", f => $"{f / 1000:F0} kN");
 
         public static PushProvider adhesionProvider = new PushProvider(
-            "Adhesion", () => Main.settings.ShowAdhesion, f => $"{(f / 1000).ToString("F0")} kN");
+            "Adhesion", f => $"{f / 1000:F0} kN");
 
         public static void Register(TrainCarType carType)
         {
@@ -21,35 +19,36 @@ namespace DvMod.HeadsUpDisplay
             Registry.Register(carType, adhesionProvider);
             Registry.Register(carType, new QueryDataProvider(
                 "Slip",
-                () => Main.settings.ShowSlip,
-                car => car.GetComponent<DrivingForce>().wheelslip * 100,
-                f => $"{f.ToString("F1")} %"));
+                car => car.GetComponent<DrivingForce>().wheelslip,
+                f => $"{f:P1}"));
 
             if (CarTypes.IsSteamLocomotive(carType))
                 SteamLocoProviders.Register(carType);
         }
 
         [HarmonyPatch]
-        static class GetTractionForcePatch
+        public static class GetTractionForcePatch
         {
-            static void Postfix(LocoControllerBase __instance, float __result)
+            public static void Postfix(LocoControllerBase __instance, float __result)
             {
                 tractiveEffortProvider.SetValue(__instance.train, __result);
             }
 
-            static IEnumerable<MethodBase> TargetMethods()
+            public static IEnumerable<MethodBase> TargetMethods()
             {
-                yield return AccessTools.Method(typeof(LocoControllerDiesel), "GetTractionForce");
-                yield return AccessTools.Method(typeof(LocoControllerShunter), "GetTractionForce");
-                yield return AccessTools.Method(typeof(LocoControllerSteam), "GetTractionForce");
+                yield return AccessTools.Method(typeof(LocoControllerDiesel), nameof(LocoControllerBase.GetTractionForce));
+                yield return AccessTools.Method(typeof(LocoControllerShunter), nameof(LocoControllerBase.GetTractionForce));
+                yield return AccessTools.Method(typeof(LocoControllerSteam), nameof(LocoControllerBase.GetTractionForce));
             }
         }
 
         [HarmonyPatch(typeof(DrivingForce), "UpdateWheelslip")]
-        static class UpdateWheelslipPatch
+        public static class UpdateWheelslipPatch
         {
-            static FieldInfo slipLimitField = AccessTools.DeclaredField(typeof(DrivingForce), "tractionForceWheelslipLimit");
-            static void Postfix(DrivingForce __instance, Bogie bogie)
+            private static readonly FieldInfo slipLimitField =
+                AccessTools.DeclaredField(typeof(DrivingForce), nameof(DrivingForce.tractionForceWheelslipLimit));
+
+            public static void Postfix(DrivingForce __instance, Bogie bogie)
             {
                 var car = bogie.Car;
                 adhesionProvider.SetValue(car, (float)slipLimitField.GetValue(__instance) * car.Bogies.Length);
@@ -57,10 +56,9 @@ namespace DvMod.HeadsUpDisplay
         }
     }
 
-    static class SteamLocoProviders
+    internal static class SteamLocoProviders
     {
-        public static PushProvider cutoffProvider = new PushProvider(
-            "Cutoff", () => true, f => $"{Mathf.RoundToInt(f * 100)} %");
+        public static PushProvider cutoffProvider = new PushProvider("Cutoff", f => $"{f:P0}");
 
         public static void Register(TrainCarType carType)
         {
@@ -68,11 +66,11 @@ namespace DvMod.HeadsUpDisplay
         }
 
         [HarmonyPatch(typeof(SteamLocoSimulation), "SimulateTick")]
-        static class SimulateTickPatch
+        public static class SimulateTickPatch
         {
-            static bool Prefix(SteamLocoSimulation __instance)
+            public static bool Prefix(SteamLocoSimulation __instance)
             {
-                cutoffProvider.SetValue(__instance.GetComponent<TrainCar>(), __instance.cutoff.value);
+                cutoffProvider.SetValue(TrainCar.Resolve(__instance.gameObject), __instance.cutoff.value);
                 return true;
             }
         }

@@ -2,41 +2,40 @@ using System;
 
 namespace DvMod.HeadsUpDisplay
 {
-    using Provider = Func<TrainCar, float>;
+    using Provider = Func<TrainCar, float?>;
     using Formatter = Func<float, string>;
 
-    public interface DataProvider
+    public interface IDataProvider
     {
         string Label { get; }
-        bool Enabled { get; }
-        float GetValue(TrainCar car);
+        IComparable Order { get; }
+        float? GetValue(TrainCar car);
         string GetFormatted(TrainCar car);
     }
 
-    public readonly struct QueryDataProvider : DataProvider
+    public readonly struct QueryDataProvider : IDataProvider
     {
         public string Label { get; }
-        public bool Enabled { get => enable(); }
-        readonly Provider provider;
-        readonly Formatter formatter;
-        private readonly Func<bool> enable;
+        public IComparable Order { get; }
+        private readonly Provider provider;
+        private readonly Formatter formatter;
 
-        public QueryDataProvider(string label, Func<bool> enable, Provider provider, Formatter formatter)
+        public QueryDataProvider(string label, Provider provider, Formatter formatter, IComparable? order = null)
         {
             this.Label = label;
+            this.Order = order ?? label;
             this.provider = provider;
             this.formatter = formatter;
-            this.enable = enable;
         }
 
-        public float GetValue(TrainCar car)
+        public float? GetValue(TrainCar car)
         {
             return provider(car);
         }
 
         public string GetFormatted(TrainCar car)
         {
-            return formatter(GetValue(car));
+            return formatter(GetValue(car) ?? default);
         }
     }
 
@@ -46,8 +45,10 @@ namespace DvMod.HeadsUpDisplay
         {
             GeneralProviders.Register();
             foreach (TrainCarType carType in Enum.GetValues(typeof(TrainCarType)))
+            {
                 if (CarTypes.IsLocomotive(carType))
                     LocoProviders.Register(carType);
+            }
         }
     }
 }

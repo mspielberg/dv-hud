@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace DvMod.HeadsUpDisplay
 {
-    static class GeneralProviders
+    public static class GeneralProviders
     {
         // U+2007 FIGURE SPACE
         // U+002B PLUS SIGN
@@ -15,12 +15,10 @@ namespace DvMod.HeadsUpDisplay
         {
             Registry.Register(RegistryKeys.AllCars, new QueryDataProvider(
                 "Speed",
-                () => Main.settings.ShowSpeed,
                 car => Mathf.Abs(car.GetForwardSpeed()) * 3.6f,
                 f => $"{f:F1} km/h"));
             Registry.Register(RegistryKeys.AllCars, new QueryDataProvider(
                 "Grade",
-                () => Main.settings.ShowGrade,
                 car => {
                     var inclination = car.transform.localEulerAngles.x;
                     inclination = inclination > 180 ? 360f - inclination : -inclination;
@@ -29,18 +27,15 @@ namespace DvMod.HeadsUpDisplay
                 f => f.ToString(GradeFormat)));
             Registry.Register(RegistryKeys.AllCars, new QueryDataProvider(
                 "Brake pipe",
-                () => Main.settings.ShowBrakePipe,
                 car => car.brakeSystem?.brakePipePressure ?? 0f,
                 f => $"{f:F2} bar"));
             Registry.Register(RegistryKeys.AllCars, new QueryDataProvider(
                 "Consist mass",
-                () => Main.settings.ShowConsistMass,
                 car => car.trainset.cars.Sum(c => c.totalMass + CargoTypes.GetCargoMass(c.LoadedCargo, c.LoadedCargoAmount)),
                 f => $"{f / 1000:F0} t"));
 
             Registry.Register(RegistryKeys.AllCars, new QueryDataProvider(
                 "Consist length",
-                () => Main.settings.ShowConsistMass,
                 car => car.trainset.cars.Sum(c => c.logicCar.length),
                 f => $"{f:F0} m"));
         }
