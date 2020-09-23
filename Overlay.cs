@@ -117,27 +117,27 @@ namespace DvMod.HeadsUpDisplay
             if (!PlayerManager.Car)
                 return;
 
+            var labelsAndValues = Registry.providers.Values
+                .Where(Main.settings.IsEnabled)
+                .Select(dp => (dp.Label, dp.GetFormatted(PlayerManager.Car)))
+                .Where(p => p.Item2 != null);
+
+            GUILayout.BeginHorizontal("box");
             GUILayout.BeginVertical();
-            foreach (var group in Registry.GetProviders(PlayerManager.Car.carType).Where(g => g.Any(Main.settings.IsEnabled)))
+            foreach (var (label, value) in labelsAndValues)
             {
-                GUILayout.BeginHorizontal("box");
-                GUILayout.BeginVertical();
-                foreach (var dp in group)
-                {
-                    if (Main.settings.IsEnabled(dp))
-                        GUILayout.Label(dp.Label, noWrap);
-                }
-                GUILayout.EndVertical();
-                GUILayout.BeginVertical();
-                foreach (var dp in group)
-                {
-                    if (Main.settings.IsEnabled(dp))
-                        GUILayout.Label(dp.GetFormatted(PlayerManager.Car), noWrap);
-                }
-                GUILayout.EndVertical();
-                GUILayout.EndHorizontal();
+                if (value != null)
+                    GUILayout.Label(label, noWrap);
             }
             GUILayout.EndVertical();
+            GUILayout.BeginVertical();
+            foreach (var (label, value) in labelsAndValues)
+            {
+                if (value != null)
+                    GUILayout.Label(value, noWrap);
+            }
+            GUILayout.EndVertical();
+            GUILayout.EndHorizontal();
         }
 
         private readonly struct CarGroup
@@ -187,12 +187,12 @@ namespace DvMod.HeadsUpDisplay
         private float GetAuxReservoirPressure(TrainCar car) =>
             car.IsLoco
             ? car.brakeSystem.mainReservoirPressure
-            : Registry.GetProvider(car.carType, "Aux reservoir")
+            : Registry.GetProvider("Aux reservoir")
                 .FlatMap(p => p.GetValue(car))
                 ?? default;
 
         private float GetBrakeCylinderPressure(TrainCar car) =>
-            Registry.GetProvider(car.carType, "Brake cylinder")
+            Registry.GetProvider("Brake cylinder")
                 .FlatMap(p => p.GetValue(car))
                 ?? default;
 
@@ -204,7 +204,7 @@ namespace DvMod.HeadsUpDisplay
             float maxStress = 0f;
 
             var firstCar = cars.First();
-            var groupCars = new List<TrainCar>(){ firstCar };
+            var groupCars = new List<TrainCar>() { firstCar };
             float minBrakePipePressure = firstCar.brakeSystem.brakePipePressure;
             float minBrakeReservoirPressure = GetAuxReservoirPressure(firstCar);
             float maxBrakeCylinderPressure = GetBrakeCylinderPressure(firstCar);
@@ -317,7 +317,7 @@ namespace DvMod.HeadsUpDisplay
             if (Main.settings.showCarDestinations)
                 DrawCarDestinations(groups);
 
-            if(Main.settings.showCarBrakeStatus)
+            if (Main.settings.showCarBrakeStatus)
                 DrawCarBrakeStatus(groups);
 
             GUILayout.EndHorizontal();
@@ -334,7 +334,7 @@ namespace DvMod.HeadsUpDisplay
             {
                 var buildup = group.maxStress;
                 var buildupPct = buildup / derailThreshold * 100;
-                GUI.contentColor = Color.HSVToRGB(Mathf.Lerp(1f/3f, 0, (buildupPct - 30f) / 40f), 1f, 1f);
+                GUI.contentColor = Color.HSVToRGB(Mathf.Lerp(1f / 3f, 0, (buildupPct - 30f) / 40f), 1f, 1f);
                 GUILayout.Label(buildupPct.ToString("F0"), rightAlign);
             }
             GUI.contentColor = Color.white;
@@ -485,12 +485,12 @@ namespace DvMod.HeadsUpDisplay
             if (!PlayerManager.Car)
                 return;
 
-            var bogie = PlayerManager.Car.Bogies[0];
+            var bogie = PlayerManager.Car.Bogies[1];
             var track = bogie.track;
             if (track == null)
                 return;
             var startSpan = bogie.traveller.Span;
-            var locoDirection = (PlayerManager.LastLoco?.GetComponent<LocoControllerBase>()?.reverser ?? 0f) >= 0f;
+            var locoDirection = PlayerManager.LastLoco == null || PlayerManager.LastLoco.GetComponent<LocoControllerBase>()?.reverser >= 0f;
             var direction = !locoDirection ^ (bogie.trackDirection > 0);
             var currentGrade = TrackIndexer.Grade(bogie.point1) * (direction ? 1 : -1);
 

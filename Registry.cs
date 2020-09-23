@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Linq;
 
 namespace DvMod.HeadsUpDisplay
 {
@@ -9,63 +7,41 @@ namespace DvMod.HeadsUpDisplay
     using Formatter = Func<float, string>;
     using Pusher = Action<TrainCar, float>;
 
-    public static class RegistryKeys
-    {
-        public static object AllCars = new object();
-    }
-
     static public class Registry
     {
-        private static readonly Dictionary<object, OrderedDictionary> providers =
-            new Dictionary<object, OrderedDictionary>() { [RegistryKeys.AllCars] = new OrderedDictionary() };
+        public static readonly Dictionary<string, DataProvider> providers = new Dictionary<string, DataProvider>();
 
-        public static void Register(object key, IDataProvider dp)
+        public static void Register(DataProvider dp)
         {
-            if (!providers.ContainsKey(key))
-                providers.Add(key, new OrderedDictionary());
-            providers[key][dp.Label] = dp;
-            Main.DebugLog($"Registered data provider for {key}: {dp.Label}");
+            providers[dp.Label] = dp;
+            Main.DebugLog($"Registered data provider for {dp.Label}");
         }
 
-    public static IDataProvider? GetProvider(object key, string label)
+        public static DataProvider? GetProvider(string label)
         {
-            if (providers.ContainsKey(key))
-            {
-                 var specificProviders = providers[key];
-                 if (specificProviders.Contains(label))
-                    return (IDataProvider)specificProviders[label];
-            }
-            return (IDataProvider)providers[RegistryKeys.AllCars][label];
+            providers.TryGetValue(label, out var dp);
+            return dp;
         }
 
-        public static List<List<IDataProvider>> GetProviders(object key)
+        public static void RegisterPull(string label, Provider provider, Formatter formatter, IComparable order)
         {
-            var providersForCarType = new List<List<IDataProvider>>
-            {
-                new List<IDataProvider>(providers[RegistryKeys.AllCars].Values.Cast<IDataProvider>())
-            };
-            if (providers.ContainsKey(key))
-                providersForCarType.Add(new List<IDataProvider>(providers[key].Values.Cast<IDataProvider>()));
-            return providersForCarType;
+            Register(new QueryDataProvider(label, provider, formatter, order));
         }
 
-        public static void RegisterPull(object key, string label, Provider provider, Formatter formatter, IComparable order)
-        {
-            Register(key, new QueryDataProvider(label, provider, formatter, order));
-        }
-
-        public static Pusher RegisterPush(object key, string label, Formatter formatter, IComparable order)
+        public static Pusher RegisterPush(string label, Formatter formatter, IComparable order)
         {
             var pp = new PushProvider(label, formatter, order);
-            Register(key, pp);
+            Register(pp);
             return pp.SetValue;
         }
 
-        public static Pusher? GetPusher(object key, string label)
+        public static Pusher? GetPusher(string label)
         {
-            if (GetProvider(key, label) is PushProvider pp)
-                return pp.SetValue;
-            return null;
+            return GetProvider(label) switch
+            {
+                PushProvider pp => pp.SetValue,
+                _ => null
+            };
         }
     }
 }

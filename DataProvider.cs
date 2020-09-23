@@ -5,37 +5,49 @@ namespace DvMod.HeadsUpDisplay
     using Provider = Func<TrainCar, float?>;
     using Formatter = Func<float, string>;
 
-    public interface IDataProvider
-    {
-        string Label { get; }
-        IComparable Order { get; }
-        float? GetValue(TrainCar car);
-        string GetFormatted(TrainCar car);
-    }
-
-    public readonly struct QueryDataProvider : IDataProvider
+    public abstract class DataProvider
     {
         public string Label { get; }
         public IComparable Order { get; }
-        private readonly Provider provider;
         private readonly Formatter formatter;
 
-        public QueryDataProvider(string label, Provider provider, Formatter formatter, IComparable? order = null)
+        public abstract float? GetValue(TrainCar car);
+
+        public string? GetFormatted(TrainCar car)
         {
-            this.Label = label;
-            this.Order = order ?? label;
-            this.provider = provider;
-            this.formatter = formatter;
+            return GetValue(car) switch
+            {
+                float v => formatter(v),
+                _ => null,
+            };
         }
 
-        public float? GetValue(TrainCar car)
+        protected DataProvider(string label, IComparable? order, Formatter formatter)
+        {
+            Label = label;
+            Order = order ?? label;
+            this.formatter = formatter;
+        }
+    }
+
+    public class QueryDataProvider : DataProvider
+    {
+        private readonly Provider provider;
+
+        public QueryDataProvider(string label, Provider provider, Formatter formatter, IComparable? order = null)
+        : base(label, order, formatter)
+        {
+            this.provider = provider;
+        }
+
+        public override float? GetValue(TrainCar car)
         {
             return provider(car);
         }
 
-        public string GetFormatted(TrainCar car)
+        public override string ToString()
         {
-            return formatter(GetValue(car) ?? default);
+            return $"QueryProvider {Label}";
         }
     }
 
@@ -44,11 +56,7 @@ namespace DvMod.HeadsUpDisplay
         public static void Register()
         {
             GeneralProviders.Register();
-            foreach (TrainCarType carType in Enum.GetValues(typeof(TrainCarType)))
-            {
-                if (CarTypes.IsLocomotive(carType))
-                    LocoProviders.Register(carType);
-            }
+            LocoProviders.Register();
         }
     }
 }

@@ -13,11 +13,12 @@ namespace DvMod.HeadsUpDisplay
 
         public static void Register()
         {
-            Registry.Register(RegistryKeys.AllCars, new QueryDataProvider(
+            Registry.Register(new QueryDataProvider(
                 "Speed",
                 car => Mathf.Abs(car.GetForwardSpeed()) * 3.6f,
                 f => $"{f:F1} km/h"));
-            Registry.Register(RegistryKeys.AllCars, new QueryDataProvider(
+
+            Registry.Register(new QueryDataProvider(
                 "Grade",
                 car => {
                     var inclination = car.transform.localEulerAngles.x;
@@ -25,16 +26,18 @@ namespace DvMod.HeadsUpDisplay
                     return Mathf.Tan(inclination * Mathf.PI / 180) * 100;
                 },
                 f => f.ToString(GradeFormat)));
-            Registry.Register(RegistryKeys.AllCars, new QueryDataProvider(
+
+            Registry.Register(new QueryDataProvider(
                 "Brake pipe",
-                car => car.brakeSystem?.brakePipePressure ?? 0f,
+                car => car.brakeSystem?.brakePipePressure,
                 f => $"{f:F2} bar"));
-            Registry.Register(RegistryKeys.AllCars, new QueryDataProvider(
+
+            Registry.Register(new QueryDataProvider(
                 "Consist mass",
                 car => car.trainset.cars.Sum(c => c.totalMass + CargoTypes.GetCargoMass(c.LoadedCargo, c.LoadedCargoAmount)),
                 f => $"{f / 1000:F0} t"));
 
-            Registry.Register(RegistryKeys.AllCars, new QueryDataProvider(
+            Registry.Register(new QueryDataProvider(
                 "Consist length",
                 car => car.trainset.cars.Sum(c => c.logicCar.length),
                 f => $"{f:F0} m"));

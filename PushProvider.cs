@@ -1,26 +1,19 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Formatter = System.Func<float, string>;
 
 namespace DvMod.HeadsUpDisplay
 {
-    using Formatter = Func<float, string>;
-    public class PushProvider : IDataProvider
+    public class PushProvider : DataProvider
     {
         private readonly Dictionary<string, float> values = new Dictionary<string, float>();
 
-        public string Label { get; }
-        public IComparable Order { get; }
-
-        private readonly Formatter formatter;
-
-        public float alpha = 0.1f;
+        private const float alpha = 0.1f;
 
         public PushProvider(string label, Formatter formatter, IComparable? order = null)
+        : base(label, order, formatter)
         {
-            this.Label = label;
-            this.Order = order ?? label;
-            this.formatter = formatter;
         }
 
         public override string ToString()
@@ -28,15 +21,9 @@ namespace DvMod.HeadsUpDisplay
             return $"PushProvider {Label}: {values.Aggregate("", (a,b) => a + b.ToString())}";
         }
 
-        public float? GetValue(TrainCar car)
+        public override float? GetValue(TrainCar car)
         {
-            values.TryGetValue(car.ID, out var value);
-            return value;
-        }
-
-        public string GetFormatted(TrainCar car)
-        {
-            return formatter(GetValue(car) ?? default);
+            return values.TryGetValue(car.ID, out var value) ? value : (float?)null;
         }
 
         public void SetValue(TrainCar car, float value)

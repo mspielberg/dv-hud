@@ -13,17 +13,16 @@ namespace DvMod.HeadsUpDisplay
         public static PushProvider adhesionProvider = new PushProvider(
             "Adhesion", f => $"{f / 1000:F0} kN");
 
-        public static void Register(TrainCarType carType)
+        public static void Register()
         {
-            Registry.Register(carType, tractiveEffortProvider);
-            Registry.Register(carType, adhesionProvider);
-            Registry.Register(carType, new QueryDataProvider(
+            Registry.Register(tractiveEffortProvider);
+            Registry.Register(adhesionProvider);
+            Registry.Register(new QueryDataProvider(
                 "Slip",
-                car => car.GetComponent<DrivingForce>().wheelslip,
+                car => car.GetComponent<DrivingForce>()?.wheelslip,
                 f => $"{f:P1}"));
 
-            if (CarTypes.IsSteamLocomotive(carType))
-                SteamLocoProviders.Register(carType);
+            SteamLocoProviders.Register();
         }
 
         [HarmonyPatch]
@@ -60,9 +59,9 @@ namespace DvMod.HeadsUpDisplay
     {
         public static PushProvider cutoffProvider = new PushProvider("Cutoff", f => $"{f:P0}");
 
-        public static void Register(TrainCarType carType)
+        public static void Register()
         {
-            Registry.Register(carType, cutoffProvider);
+            Registry.Register(cutoffProvider);
         }
 
         [HarmonyPatch(typeof(SteamLocoSimulation), "SimulateTick")]

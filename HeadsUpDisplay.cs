@@ -101,7 +101,7 @@ namespace DvMod.HeadsUpDisplay
 
             public Vector2 hudPosition;
 
-            public bool IsEnabled(IDataProvider _)
+            public bool IsEnabled(DataProvider _)
             {
                 return true;
             }
