@@ -90,9 +90,9 @@ namespace DvMod.HeadsUpDisplay
             public static Vector2 defaultPosition = new Vector2(10, 10);
 
             [Draw("Show general info")]
-            private bool showGeneral = true;
+            private bool showGeneral = false; // true;
 
-            [Draw("Speed", VisibleOn = "showGeneral|true")]
+			[Draw("Speed", VisibleOn = "showGeneral|true")]
             private bool showSpeed = true;
             public bool ShowSpeed { get => showGeneral && showSpeed; }
 
@@ -109,7 +109,7 @@ namespace DvMod.HeadsUpDisplay
             public bool ShowConsistMass { get => showGeneral && showConsistMass; }
 
 
-            [Draw("Show locomotive info")] private bool showLoco = true;
+            [Draw("Show locomotive info")] private bool showLoco = false; // true;
 
             [Draw("Tractive effort", VisibleOn = "showLoco|true")]
             private bool showTractiveEffort = true;

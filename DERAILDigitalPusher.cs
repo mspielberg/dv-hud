@@ -214,6 +214,8 @@ namespace DvMod.HeadsUpDisplay
 			UnityEngine.Debug.LogWarning("[HEADS UP DISPLAY] > [DERAIL Digital] ITabletComputer Instance set. PushTrigger started!");
 		}
 
+		static float gradeSkipper = 0;
+		static float slipSkipper = 0;
 		public static void Push()
 		{
 			if (Instance == null) return;
@@ -286,7 +288,12 @@ namespace DvMod.HeadsUpDisplay
 							Instance.SetCurrentSpeed(float.Parse(dp.GetValue(scanLoco).Split(' ')[0]));
 							break;
 						case "Grade":
-							Instance.SetCurrentGrade(float.Parse(dp.GetValue(scanLoco).Split(' ')[0].TrimStart(new char[] { '\u002b', '\u2212' })) * ((locoController.reverser >= 0) ? -1 : 1) * 10);
+							if (gradeSkipper > 0) gradeSkipper -= Time.deltaTime;
+							else
+							{
+								Instance.SetCurrentGrade(float.Parse(dp.GetValue(scanLoco).Split(' ')[0].TrimStart(new char[] { '\u002b', '\u2212' })) * ((locoController.reverser >= 0) ? -1 : 1) * 10);
+								gradeSkipper = 1;
+							}
 							break;
 						case "Brake pipe":
 							break;
@@ -302,7 +309,12 @@ namespace DvMod.HeadsUpDisplay
 						case "Adhesion":
 							break;
 						case "Slip":
-							Instance.SetWheelSlip(float.Parse(dp.GetValue(scanLoco).Split(' ')[0]));
+							if (slipSkipper > 0) slipSkipper -= Time.deltaTime;
+							else
+							{
+								Instance.SetWheelSlip(float.Parse(dp.GetValue(scanLoco).Split(' ')[0]));
+								slipSkipper = 0.25f;
+							}
 							break;
 						default:
 							break;
@@ -318,6 +330,7 @@ namespace DvMod.HeadsUpDisplay
 			}
 		}
 
+		static float currentSpeedLimitNext;
 		private static void DrawUpcomingEvents ()
 		{
 			if (Instance == null) return;
@@ -347,7 +360,25 @@ namespace DvMod.HeadsUpDisplay
 				.Take(Main.settings.maxEventCount)
 				.TakeWhile(ev => ev.span < Main.settings.maxEventSpan);
 
-			Instance.SetTrackSpeedItems(eventDescriptions.Where(e => e is SpeedLimitEvent).Cast<SpeedLimitEvent>().Select(s => ((float)s.span, (float)s.limit)).ToArray());
+			IEnumerable<(float span, float limit)> trackSpeedEvents = eventDescriptions.Where(e => e is SpeedLimitEvent).Cast<SpeedLimitEvent>().Select(s => ((float)s.span, (float)s.limit));
+			var nextSpeedEvents = trackSpeedEvents.Where(e => e.span < 250);
+
+
+
+			(float span, float limit) nextForSpan = trackSpeedEvents.Aggregate((a, b) => a.span < b.span ? a : b);
+			(float span, float limit) nextForLimit = trackSpeedEvents.Aggregate((a, b) => a.limit < b.limit ? a : b);
+
+			float lerpVal = Mathf.Clamp01(nextForLimit.span * 0.002f);
+			float maxSpeed = Mathf.Min(Mathf.Lerp(nextForLimit.limit, speedLimitConsist, lerpVal), speedLimitConsist);
+			Instance.SetSpeedMax(maxSpeed);
+
+			if (nextForSpan.span <= 0.1f) Instance.SetSpeedLimitNext(currentSpeedLimitNext = nextForSpan.limit);
+			if (currentSpeedLimitNext > nextForLimit.limit) Instance.SetSpeedLimitNext(currentSpeedLimitNext = nextForLimit.limit);
+
+
+
+			Instance.SetTrackSpeedItems(trackSpeedEvents.ToArray());
+
 			Instance.SetTrackGradeItems(eventDescriptions.Where(e => e is GradeEvent).Cast<GradeEvent>().Select(s => ((float)s.span, (float)s.grade * 10, -1f)).ToArray());
 
 			var junctionEvents = eventDescriptions.Where(e => e is JunctionEvent);
@@ -361,6 +392,7 @@ namespace DvMod.HeadsUpDisplay
 			Instance.SetNextWyeDir((nextJunction == null) ? WyeDirection.NA : (nextJunction.selectedBranch == 0) ? WyeDirection.Left : WyeDirection.Right);
 		}
 
+		static float speedLimitConsist;
 		private static void DrawConsistSpeedLimit()
 		{
 			if (Instance == null) return;
@@ -392,7 +424,7 @@ namespace DvMod.HeadsUpDisplay
 			var speeds = eventDescriptions.Where(e => e is SpeedLimitEvent).Cast<SpeedLimitEvent>().Select(s => ((float)s.span, (float)s.limit));
 			var limit = (speeds.Count() > 0) ? speeds.Min(s => s.Item2) : 200;
 			limit = Mathf.Min(limit, TrackFollower.GetSpeedLimit(track, startSpan, direction) ?? 0f);
-			Instance.SetSpeedLimit(limit);
+			Instance.SetSpeedLimitConsist(speedLimitConsist = limit);
 		}
 
 		/// <summary>Fixes unorderly trainset</summary>
