@@ -104,13 +104,11 @@ namespace DvMod.HeadsUpDisplay
                 foreach (var signDebug in signDebugs)
                 {
                     signDebug.gameObject.layer = SIGN_COLLIDER_LAYER;
-                    // var collider = signDebug.gameObject.AddComponent<CapsuleCollider>();
-                    var collider = signDebug.gameObject.AddComponent<SphereCollider>();
+                    var collider = signDebug.gameObject.AddComponent<CapsuleCollider>();
                     collider.name = signDebug.text;
                     collider.center = new Vector3(2f, 0f, 0f);
-                    collider.radius = 1f;
-                    // collider.height = 100f;
-                    // collider.direction = 1; // along Y-axis
+                    collider.height = 10f;
+                    collider.direction = 1; // along Y-axis
                     collider.isTrigger = true;
 
                     foundSigns = true;
