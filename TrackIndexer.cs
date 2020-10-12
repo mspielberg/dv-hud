@@ -19,11 +19,7 @@ namespace DvMod.HeadsUpDisplay
         {
             if (!indexedTracks.TryGetValue(track, out var data))
             {
-                float start = Time.realtimeSinceStartup;
                 data = indexedTracks[track] = GenerateTrackEvents(track).ToList();
-                float end = Time.realtimeSinceStartup;
-                Main.DebugLog($"Indexed track {track.logicTrack.ID}."
-                   + $" Found {data.Count} events ({data.OfType<SpeedLimitEvent>().Count()} speed signs) in {end-start} s.");
             }
             return data;
         }
@@ -31,30 +27,51 @@ namespace DvMod.HeadsUpDisplay
         public static IEnumerable<TrackEvent> GetTrackEvents(RailTrack track, bool first, double start)
         {
             var allTrackEvents = GetTrackEvents(track);
-            var filtered = allTrackEvents.RelativeFromSpan(start, first);
-            // Debug.Log($"allTrackEvents:\n{string.Join("\n",allTrackEvents)}\nfiltered:\n{string.Join("\n",filtered)}");
-            return filtered;
+            return allTrackEvents.RelativeFromSpan(start, first);
         }
 
-        private static SpeedLimitEvent? ParseSign(string colliderName, bool direction, double span)
+        private static IEnumerable<TrackEvent> ParseSign(string colliderName, bool direction, double span)
         {
             string[] parts = colliderName.Split('\n');
-            return parts.Length switch
+            switch (parts.Length)
             {
-                1 => new SpeedLimitEvent(span, direction, int.Parse(parts[0]) * 10),
-                2 => new DualSpeedLimitEvent(span, direction, int.Parse(parts[0]) * 10, int.Parse(parts[1]) * 10),
-                _ => null,
-            };
+                case 1:
+                    if (int.TryParse(parts[0], out var limit))
+                        yield return new SpeedLimitEvent(span, direction, limit * 10);
+                    break;
+
+                case 2:
+                    if (int.TryParse(parts[0], out var top))
+                    {
+                        if (parts[1][0] == '+' || parts[1][0] == '-')
+                        {
+                            yield return new SpeedLimitEvent(span, direction, top * 10);
+                            yield return new GradeEvent(span, direction, float.Parse(parts[1]));
+                        }
+                        else if (int.TryParse(parts[1], out var bottom))
+                        {
+                            yield return new DualSpeedLimitEvent(span, direction, top * 10, bottom * 10);
+                        }
+                    }
+                    else if (int.TryParse(parts[1], out var bottom))
+                    {
+                        yield return new SpeedLimitEvent(span, direction, bottom * 10);
+                    }
+                    else
+                    {
+                        Main.DebugLog($"Unable to parse sign: \"{colliderName.Replace("\n", "\\n")}\"");
+                    }
+                    break;
+            }
         }
 
         public static float Grade(EquiPointSet.Point point)
         {
-            return (float)Mathf.RoundToInt(point.forward.y * 200) / 2f;
+            return Mathf.RoundToInt(point.forward.y * 200) / 2f;
         }
 
-        private static IEnumerable<SpeedLimitEvent> FindSigns(EquiPointSet.Point point)
+        private static IEnumerable<TrackEvent> FindSigns(EquiPointSet.Point point)
         {
-            // Debug.Log($"Raycasting from {(Vector3)point.position + WorldMover.currentMove} / {point.forward}");
             var hits = Physics.RaycastAll(
                 new Ray((Vector3)point.position + WorldMover.currentMove, point.forward),
                 (float)point.spanToNextPoint,
@@ -63,13 +80,9 @@ namespace DvMod.HeadsUpDisplay
             foreach (var hit in hits)
             {
                 var dp = Vector3.Dot(hit.collider.transform.forward, point.forward);
-                // Debug.Log($"Found sign {hit.collider.name} at {hit.point}, dp = {dp}");
                 bool direction = dp < 0f;
-                var signEvent = ParseSign(hit.collider.name, direction, point.span + hit.distance);
-                if (signEvent == null)
-                    Debug.Log($"Could not parse sign text {hit.collider.name}");
-                else
-                    yield return signEvent;
+                foreach (var trackEvent in ParseSign(hit.collider.name, direction, point.span + hit.distance))
+                    yield return trackEvent;
             }
         }
 
@@ -80,17 +93,10 @@ namespace DvMod.HeadsUpDisplay
                 pointSet,
                 Mathf.Min(SIMPLIFIED_RESOLUTION, (float)pointSet.span / 3));
 
-            var lastGrade = float.NaN;
             foreach (var point in simplified.points)
             {
-                foreach (var sign in FindSigns(point))
-                    yield return sign;
-                var grade = Grade(point);
-                if (grade != lastGrade)
-                {
-                    yield return new GradeEvent(point.span, grade);
-                    lastGrade = grade;
-                }
+                foreach (var trackEvent in FindSigns(point))
+                    yield return trackEvent;
             }
         }
 
@@ -113,7 +119,6 @@ namespace DvMod.HeadsUpDisplay
 
                     foundSigns = true;
                 }
-                // Main.DebugLog($"Loaded tile {sceneGO} on frame {Time.frameCount}. Fixed update {Time.fixedTime / Time.fixedDeltaTime}");
                 if (foundSigns)
                     indexedTracks.Clear();
             }

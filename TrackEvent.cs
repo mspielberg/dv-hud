@@ -1,7 +1,6 @@
 using DV.Logic.Job;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 
 namespace DvMod.HeadsUpDisplay
 {
@@ -115,31 +114,30 @@ namespace DvMod.HeadsUpDisplay
 
     public class GradeEvent : TrackEvent
     {
+        public override bool Direction { get; }
         public readonly float grade;
-        public GradeEvent(double span, float grade)
+        public GradeEvent(double span, bool direction, float grade)
         : base(span)
         {
+            Direction = direction;
             this.grade = grade;
         }
 
         public override TrackEvent WithSpan(double span, bool direction)
         {
-            return new GradeEvent(span, direction ? grade : -grade);
+            return new GradeEvent(span, direction, grade);
         }
 
         public override string ToString()
         {
-            return $"{span}: Grade {grade}%";
+            return $"{span} {Direction}: Grade {grade}%";
         }
-
-        public override bool Direction => true;
     }
 
     public static class TrackEventsExtension
     {
         public static IEnumerable<TrackEvent> RelativeFromSpan(this IEnumerable<TrackEvent> events, double startSpan, bool direction)
         {
-            // Debug.Log($"Filtering events based on {startSpan}, {direction}");
             foreach (var ev in direction ? events : events.Reverse())
             {
                 double relativeSpan = direction ? ev.span - startSpan : startSpan - ev.span;
@@ -152,7 +150,6 @@ namespace DvMod.HeadsUpDisplay
         {
             foreach (var ev in events)
             {
-                // Debug.Log($"setting span to {ev.span} + {offset} = {ev.span+offset}");
                 yield return ev.WithSpan(ev.span + offset, ev.Direction);
             }
         }
@@ -212,16 +209,13 @@ namespace DvMod.HeadsUpDisplay
 
         public static IEnumerable<TrackEvent> FilterGradeEvents(this IEnumerable<TrackEvent> events, float prevGrade)
         {
-            prevGrade = (float)Mathf.RoundToInt(prevGrade * 2) / 2;
-            double prevSpan = -GradeChangeInterval;
             foreach (TrackEvent ev in events)
             {
                 if (ev is GradeEvent gradeEvent)
                 {
-                    if (prevGrade != gradeEvent.grade && gradeEvent.span >= prevSpan + GradeChangeInterval)
+                    if (ev.Direction && prevGrade != gradeEvent.grade)
                     {
                         prevGrade = gradeEvent.grade;
-                        prevSpan = gradeEvent.span;
                         yield return gradeEvent;
                     }
                 }
