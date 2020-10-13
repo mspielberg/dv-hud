@@ -146,6 +146,18 @@ namespace DvMod.HeadsUpDisplay
                 }
             });
 
+            Register("hud.getSignedGrade", _ =>
+            {
+                var transform = PlayerManager.PlayerTransform;
+                (RailTrack startTrack, EquiPointSet.Point? point) = RailTrack.GetClosest(transform.position);
+                if (startTrack == null)
+                    return;
+                var pointForward = point?.forward ?? Vector3.zero;
+                var pointSpan = point?.span ?? 0;
+                var trackDirection = Vector3.Dot(transform.forward, pointForward) > 0f;
+                Terminal.Log($"{TrackFollower.GetGrade(startTrack, pointSpan, trackDirection)}");
+            });
+
             Register("hud.getSpeedLimit", _ =>
             {
                 var transform = PlayerManager.PlayerTransform;

@@ -7,6 +7,14 @@ namespace DvMod.HeadsUpDisplay
 {
     public static class TrackFollower
     {
+        public static GradeEvent? GetGrade(RailTrack track, double startSpan, bool direction)
+        {
+            var events = FollowTrack(track, startSpan, direction ? float.NegativeInfinity : float.PositiveInfinity);
+            return events
+                .OfType<GradeEvent>()
+                .FirstOrDefault(ev => !ev.Direction);
+        }
+
         public static float? GetSpeedLimit(RailTrack track, double startSpan, bool direction)
         {
             var events = FollowTrack(track, startSpan, direction ? float.NegativeInfinity : float.PositiveInfinity);

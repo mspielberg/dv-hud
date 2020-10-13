@@ -64,6 +64,7 @@ namespace DvMod.HeadsUpDisplay
         {
             behaviourRoot = new GameObject();
             behaviourRoot.AddComponent<Overlay>();
+            behaviourRoot.AddComponent<DERAILDigitalIntegration>();
         }
 
         private static bool OnUnload(UnityModManager.ModEntry modEntry)
