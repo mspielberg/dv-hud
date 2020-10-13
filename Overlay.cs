@@ -99,7 +99,8 @@ namespace DvMod.HeadsUpDisplay
 
             GUILayout.BeginHorizontal();
 
-            DrawCurrentCarInfo();
+            if (Main.settings.showDrivingInfo)
+                DrawCurrentCarInfo();
             if (Main.settings.showTrackInfo)
                 DrawUpcomingEvents();
 

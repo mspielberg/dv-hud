@@ -16,7 +16,18 @@ namespace DvMod.HeadsUpDisplay
         {
             mod = modEntry;
 
-            try { settings = Settings.Load<Settings>(modEntry); } catch {}
+            try
+            {
+                var loaded = Settings.Load<Settings>(modEntry);
+                if (loaded.version == modEntry.Info.Version)
+                    settings = loaded;
+                else
+                    settings = new Settings();
+            }
+            catch
+            {
+                settings = new Settings();
+            }
             var harmony = new Harmony(modEntry.Info.Id);
             harmony.PatchAll();
 
@@ -69,7 +80,7 @@ namespace DvMod.HeadsUpDisplay
         private static bool OnUnload(UnityModManager.ModEntry modEntry)
         {
             if (behaviourRoot != null)
-                GameObject.Destroy(behaviourRoot);
+                Object.Destroy(behaviourRoot);
             behaviourRoot = null;
             var harmony = new Harmony(modEntry.Info.Id);
             harmony.UnpatchAll(modEntry.Info.Id);
@@ -86,6 +97,8 @@ namespace DvMod.HeadsUpDisplay
         {
             public static Vector2 defaultPosition = new Vector2(10, 10);
 
+            [Draw("Show driving info")] public bool showDrivingInfo = true;
+
             [Draw("Show track info")] public bool showTrackInfo = true;
             [Draw("Max events", VisibleOn = "showTrackInfo|true")] public int maxEventCount = 10;
             [Draw("Max distance", VisibleOn = "showTrackInfo|true")] public double maxEventSpan = 5000;
@@ -98,6 +111,7 @@ namespace DvMod.HeadsUpDisplay
             [Draw("Brake status", VisibleOn = "showCarList|true")] public bool showCarBrakeStatus = true;
 
             [Draw("Enable logging")] public bool enableLogging = false;
+            public readonly string? version = mod?.Info.Version;
 
             public Vector2 hudPosition;
 
