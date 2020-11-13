@@ -49,7 +49,7 @@ namespace DvMod.HeadsUpDisplay
 
         private static void OnGui(UnityModManager.ModEntry modEntry)
         {
-            settings.Draw(modEntry);
+            settings.Draw();
             if (GUILayout.Button("Reset position", GUILayout.ExpandWidth(false)))
             {
                 settings.hudPosition = Settings.defaultPosition;
@@ -91,40 +91,6 @@ namespace DvMod.HeadsUpDisplay
         {
             if (settings.enableLogging && mod != null)
                 mod.Logger.Log(message);
-        }
-
-        public class Settings : UnityModManager.ModSettings, IDrawable
-        {
-            public static Vector2 defaultPosition = new Vector2(10, 10);
-
-            [Draw("Show driving info")] public bool showDrivingInfo = true;
-
-            [Draw("Show track info")] public bool showTrackInfo = true;
-            [Draw("Max events", VisibleOn = "showTrackInfo|true")] public int maxEventCount = 10;
-            [Draw("Max distance", VisibleOn = "showTrackInfo|true")] public double maxEventSpan = 5000;
-
-            [Draw("Show car list")] public bool showCarList = true;
-            [Draw("Group by job", VisibleOn = "showCarList|true")] public bool groupCarsByJob = true;
-            [Draw("Cornering stress", VisibleOn = "showCarList|true")] public bool showCarStress = true;
-            [Draw("Job ID", VisibleOn = "showCarList|true")] public bool showCarJobs = true;
-            [Draw("Destination", VisibleOn = "showCarList|true")] public bool showCarDestinations = true;
-            [Draw("Brake status", VisibleOn = "showCarList|true")] public bool showCarBrakeStatus = true;
-
-            [Draw("Enable logging")] public bool enableLogging = false;
-            public readonly string? version = mod?.Info.Version;
-
-            public Vector2 hudPosition;
-
-            public bool IsEnabled(DataProvider _)
-            {
-                return true;
-            }
-
-            override public void Save(UnityModManager.ModEntry entry) => Save<Settings>(this, entry);
-
-            public void OnChange()
-            {
-            }
         }
     }
 }
