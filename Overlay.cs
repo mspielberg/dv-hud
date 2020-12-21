@@ -1,4 +1,5 @@
 using DV.Logic.Job;
+using DV.MultipleUnit;
 using DV.Simulation.Brake;
 using System;
 using System.Collections;
@@ -308,7 +309,11 @@ namespace DvMod.HeadsUpDisplay
             GUILayout.BeginVertical();
             GUILayout.Label("ID", noWrap);
             foreach (CarGroup group in groups)
+            {
+                GUI.contentColor = GetCarColor(group.cars[0]);
                 GUILayout.Label(group.cars[0].ID, noWrap);
+            }
+            GUI.contentColor = Color.white;
             GUILayout.EndVertical();
 
             if (Main.settings.showCarStress)
@@ -322,6 +327,33 @@ namespace DvMod.HeadsUpDisplay
                 DrawCarBrakeStatus(groups);
 
             GUILayout.EndHorizontal();
+        }
+
+        private const float HueOrange = 30f/360f;
+        private Color GetCarColor(TrainCar car)
+        {
+            if (!car.IsLoco)
+                return Color.white;
+
+            var isMultipleUnitCapable = car.TryGetComponent<MultipleUnitModule>(out var muModule);
+            var frontMUDisconnected = isMultipleUnitCapable
+                && car.frontCoupler.IsCoupled()
+                && car.rearCoupler.coupledTo?.train?.carType == car.carType
+                && !muModule.frontCable.IsConnected;
+            var rearMUDisconnected = isMultipleUnitCapable
+                && car.rearCoupler.IsCoupled()
+                && car.rearCoupler.coupledTo?.train?.carType == car.carType
+                && !muModule.rearCable.IsConnected;
+            var hasDisconnectedMUCable = frontMUDisconnected || rearMUDisconnected;
+
+            var isRunning = car.carType switch
+            {
+                TrainCarType.LocoShunter => car.GetComponent<LocoControllerShunter>().GetEngineRunning(),
+                TrainCarType.LocoDiesel => car.GetComponent<LocoControllerDiesel>().GetEngineRunning(),
+                _ => true,
+            };
+
+            return Color.HSVToRGB(HueOrange, hasDisconnectedMUCable ? 1 : 0, isRunning ? 1 : 0.8f);
         }
 
         private void DrawCarStress(IEnumerable<CarGroup> groups)
