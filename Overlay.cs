@@ -583,10 +583,11 @@ namespace DvMod.HeadsUpDisplay
             static (double, Car)? ClosestCar(Junction.Branch branch)
             {
                 var logicTrack = branch.track.logicTrack;
+                var logicCarToTrainCar = SingletonBehaviour<IdGenerator>.Instance.logicCarToTrainCar;
                 var allCars = logicTrack.GetCarsFullyOnTrack().Concat(logicTrack.GetCarsPartiallyOnTrack());
                 if (!allCars.Any())
                     return null;
-                var byDistance = allCars.ToDictionary(car => DistanceToBranch(branch, TrainCar.logicCarToTrainCar[car]));
+                var byDistance = allCars.ToDictionary(car => DistanceToBranch(branch, logicCarToTrainCar[car]));
                 var minDistance = byDistance.Keys.Min();
                 return (minDistance, byDistance[minDistance]);
             }

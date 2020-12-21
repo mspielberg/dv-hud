@@ -19,6 +19,7 @@
     <Reference Include="0Harmony" />
     <Reference Include="BezierCurves" />
     <Reference Include="DV.BrakeSystem" />
+    <Reference Include="DV.Utils" />
     <Reference Include="UnityEngine.CoreModule" />
     <Reference Include="UnityEngine.IMGUIModule" />
     <Reference Include="UnityEngine.PhysicsModule" />
