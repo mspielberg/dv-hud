@@ -1,3 +1,4 @@
+using DV;
 using HarmonyLib;
 using System.Collections.Generic;
 using System.Reflection;
@@ -13,10 +14,14 @@ namespace DvMod.HeadsUpDisplay
         public static PushProvider adhesionProvider = new PushProvider(
             "Adhesion", f => $"{f / 1000:F0} kN");
 
+        public static PushProvider indicatedPowerProvider = new PushProvider(
+            "Indicated power", f => $"{f / 1000:F0} kW");
+
         public static void Register()
         {
             Registry.Register(tractiveEffortProvider);
             Registry.Register(adhesionProvider);
+            Registry.Register(indicatedPowerProvider);
             Registry.Register(new QueryDataProvider(
                 "Slip",
                 car => car.GetComponent<DrivingForce>()?.wheelslip,
@@ -30,7 +35,11 @@ namespace DvMod.HeadsUpDisplay
         {
             public static void Postfix(LocoControllerBase __instance, float __result)
             {
-                tractiveEffortProvider.SetValue(__instance.train, __result);
+                if (!AppUtil.IsPaused)
+                {
+                    tractiveEffortProvider.SetValue(__instance.train, __result);
+                    indicatedPowerProvider.SetValue(__instance.train, __result * __instance.GetSpeedKmH() / 3.6f);
+                }
             }
 
             public static IEnumerable<MethodBase> TargetMethods()
