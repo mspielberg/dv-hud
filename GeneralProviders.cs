@@ -1,5 +1,3 @@
-using DV.Logic.Job;
-using System.Linq;
 using UnityEngine;
 
 namespace DvMod.HeadsUpDisplay
@@ -34,12 +32,12 @@ namespace DvMod.HeadsUpDisplay
 
             Registry.Register(new QueryDataProvider(
                 "Consist mass",
-                car => car.trainset.cars.Sum(c => c.totalMass + CargoTypes.GetCargoMass(c.LoadedCargo, c.LoadedCargoAmount)),
+                car => car.trainset.TotalMass(),
                 f => $"{f / 1000:F0} t"));
 
             Registry.Register(new QueryDataProvider(
                 "Consist length",
-                car => car.trainset.cars.Sum(c => c.logicCar.length),
+                car => car.trainset.OverallLength(),
                 f => $"{f:F0} m"));
         }
     }
