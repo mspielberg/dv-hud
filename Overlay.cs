@@ -17,6 +17,7 @@ namespace DvMod.HeadsUpDisplay
         public static Overlay? instance;
         private static GUIStyle? noChrome;
         private static GUIStyle? noWrap;
+        private static GUIStyle? noWrapBold;
         private static GUIStyle? rightAlign;
         private static GUIStyle? richText;
 
@@ -51,6 +52,12 @@ namespace DvMod.HeadsUpDisplay
             noWrap = new GUIStyle(GUI.skin.label)
             {
                 wordWrap = false
+            };
+
+            noWrapBold = new GUIStyle(GUI.skin.label)
+            {
+                wordWrap = false,
+                fontStyle = FontStyle.Bold,
             };
 
             rightAlign = new GUIStyle(noWrap)
@@ -156,6 +163,9 @@ namespace DvMod.HeadsUpDisplay
             public readonly float maxBrakeCylinderPressure;
             public readonly float maxBrakeFactor;
 
+            public readonly bool hasBrakeCharging;
+            public readonly bool hasBrakeApplying;
+
             public CarGroup(
                 int startIndex,
                 int endIndex,
@@ -166,7 +176,9 @@ namespace DvMod.HeadsUpDisplay
                 float minBrakePipePressure,
                 float minBrakeReservoirPressure,
                 float maxBrakeCylinderPressure,
-                float maxBrakeFactor)
+                float maxBrakeFactor,
+                bool hasBrakeCharging,
+                bool hasBrakeApplying)
             {
                 this.startIndex = startIndex;
                 this.endIndex = endIndex;
@@ -178,6 +190,8 @@ namespace DvMod.HeadsUpDisplay
                 this.minBrakeReservoirPressure = minBrakeReservoirPressure;
                 this.maxBrakeCylinderPressure = maxBrakeCylinderPressure;
                 this.maxBrakeFactor = maxBrakeFactor;
+                this.hasBrakeCharging = hasBrakeCharging;
+                this.hasBrakeApplying = hasBrakeApplying;
             }
 
             public override string ToString()
@@ -198,6 +212,11 @@ namespace DvMod.HeadsUpDisplay
                 .FlatMap(p => p.GetValue(car))
                 ?? default;
 
+        private float GetTripleValveState(TrainCar car) =>
+            Registry.GetProvider("Train brake position")
+                .FlatMap(p => p.GetValue(car))
+                ?? default;
+
         private IEnumerable<CarGroup> GetCarGroups(IEnumerable<TrainCar> cars, bool individual)
         {
             Job? prevJob = null;
@@ -212,6 +231,16 @@ namespace DvMod.HeadsUpDisplay
             float maxBrakeCylinderPressure = GetBrakeCylinderPressure(firstCar);
             float maxBrakeFactor = firstCar.brakeSystem.brakingFactor;
 
+            bool hasBrakeCharging = false;
+            bool hasBrakeApplying = false;
+
+            if (!CarTypes.IsAnyLocomotiveOrTender(firstCar.carType))
+            {
+                float tripleValveState = GetTripleValveState(firstCar);
+                hasBrakeCharging |= tripleValveState == 0f;
+                hasBrakeApplying |= tripleValveState == 1f;
+            }
+
             int i = 0;
             foreach (var car in cars)
             {
@@ -222,6 +251,7 @@ namespace DvMod.HeadsUpDisplay
                 float pipePressure = brakeSystem.brakePipePressure;
                 float auxReservoirPressure = GetAuxReservoirPressure(car);
                 float brakeCylinderPressure = GetBrakeCylinderPressure(car);
+
                 if (individual || nextDestination == null || nextDestination != prevDestTrack || job != prevJob)
                 {
                     // complete previous group
@@ -237,7 +267,9 @@ namespace DvMod.HeadsUpDisplay
                             minBrakePipePressure,
                             minBrakeReservoirPressure,
                             maxBrakeCylinderPressure,
-                            maxBrakeFactor);
+                            maxBrakeFactor,
+                            hasBrakeCharging,
+                            hasBrakeApplying);
                     }
 
                     // start new group
@@ -250,6 +282,13 @@ namespace DvMod.HeadsUpDisplay
                     minBrakeReservoirPressure = auxReservoirPressure;
                     maxBrakeCylinderPressure = brakeCylinderPressure;
                     maxBrakeFactor = brakeSystem.brakingFactor;
+
+                    if (!CarTypes.IsAnyLocomotiveOrTender(car.carType))
+                    {
+                        float tripleValveState = GetTripleValveState(car);
+                        hasBrakeCharging = tripleValveState == 0f;
+                        hasBrakeApplying = tripleValveState == 1f;
+                    }
                 }
                 else
                 {
@@ -264,6 +303,13 @@ namespace DvMod.HeadsUpDisplay
                         maxBrakeCylinderPressure = brakeCylinderPressure;
                     if (brakeSystem.brakingFactor > maxBrakeFactor)
                         maxBrakeFactor = brakeSystem.brakingFactor;
+
+                    if (!CarTypes.IsAnyLocomotiveOrTender(car.carType))
+                    {
+                        float tripleValveState = GetTripleValveState(car);
+                        hasBrakeCharging |= tripleValveState == 0f;
+                        hasBrakeApplying |= tripleValveState == 1f;
+                    }
                 }
                 i++;
             }
@@ -279,7 +325,9 @@ namespace DvMod.HeadsUpDisplay
                 minBrakePipePressure,
                 minBrakeReservoirPressure,
                 maxBrakeCylinderPressure,
-                maxBrakeFactor);
+                maxBrakeFactor,
+                hasBrakeCharging,
+                hasBrakeApplying);
         }
 
         private const char EnDash = '\u2013';
@@ -289,7 +337,7 @@ namespace DvMod.HeadsUpDisplay
             if (trainset == null)
                 return;
             IEnumerable<TrainCar> cars = trainset.cars.AsReadOnly();
-            if (!cars.First().IsLoco && cars.Last().IsLoco)
+            if (cars.Last() == PlayerManager.LastLoco || (!cars.First().IsLoco && cars.Last().IsLoco))
                 cars = cars.Reverse();
 
             var groups = GetCarGroups(cars, !Main.settings.groupCarsByJob);
@@ -332,6 +380,8 @@ namespace DvMod.HeadsUpDisplay
         private const float HueOrange = 30f/360f;
         private Color GetCarColor(TrainCar car)
         {
+            if (car.derailed)
+                return Color.red;
             if (!car.IsLoco)
                 return Color.white;
 
@@ -449,14 +499,22 @@ namespace DvMod.HeadsUpDisplay
                 GUILayout.BeginVertical();
                 GUILayout.Label("Res", noWrap);
                 foreach (var group in groups)
-                    GUILayout.Label(group.minBrakeReservoirPressure.ToString("F1"), noWrap);
+                {
+                    GUILayout.Label(
+                        group.minBrakeReservoirPressure.ToString("F1"),
+                        group.hasBrakeCharging ? noWrapBold : noWrap);
+                }
                 GUILayout.EndVertical();
 
                 GUILayout.Space(ColumnSpacing);
                 GUILayout.BeginVertical();
                 GUILayout.Label("Cyl", noWrap);
                 foreach (var group in groups)
-                    GUILayout.Label(group.maxBrakeCylinderPressure.ToString("F1"), noWrap);
+                {
+                    GUILayout.Label(
+                        group.maxBrakeCylinderPressure.ToString("F1"),
+                        group.hasBrakeApplying ? noWrapBold : noWrap);
+                }
                 GUILayout.EndVertical();
             }
 
