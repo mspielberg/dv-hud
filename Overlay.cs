@@ -163,8 +163,7 @@ namespace DvMod.HeadsUpDisplay
             public readonly float maxBrakeCylinderPressure;
             public readonly float maxBrakeFactor;
 
-            public readonly bool hasBrakeCharging;
-            public readonly bool hasBrakeApplying;
+            public readonly List<char> brakeModes;
 
             public CarGroup(
                 int startIndex,
@@ -177,8 +176,7 @@ namespace DvMod.HeadsUpDisplay
                 float minBrakeReservoirPressure,
                 float maxBrakeCylinderPressure,
                 float maxBrakeFactor,
-                bool hasBrakeCharging,
-                bool hasBrakeApplying)
+                IEnumerable<char> brakeModes)
             {
                 this.startIndex = startIndex;
                 this.endIndex = endIndex;
@@ -190,8 +188,9 @@ namespace DvMod.HeadsUpDisplay
                 this.minBrakeReservoirPressure = minBrakeReservoirPressure;
                 this.maxBrakeCylinderPressure = maxBrakeCylinderPressure;
                 this.maxBrakeFactor = maxBrakeFactor;
-                this.hasBrakeCharging = hasBrakeCharging;
-                this.hasBrakeApplying = hasBrakeApplying;
+                this.brakeModes = brakeModes.ToList();
+                if (this.brakeModes.Count == 0)
+                    this.brakeModes.Add(' ');
             }
 
             public override string ToString()
@@ -212,10 +211,13 @@ namespace DvMod.HeadsUpDisplay
                 .FlatMap(p => p.GetValue(car))
                 ?? default;
 
-        private float GetTripleValveState(TrainCar car) =>
-            Registry.GetProvider("Train brake position")
-                .FlatMap(p => p.GetValue(car))
-                ?? default;
+        private char GetTripleValveState(TrainCar car)
+        {
+            var provider = Registry.GetProvider("Train brake position");
+            var value = provider.FlatMap(p => p.GetValue(car));
+            var c = value.FlatMap(v => (char?)v);
+            return c ?? default;
+        }
 
         private IEnumerable<CarGroup> GetCarGroups(IEnumerable<TrainCar> cars, bool individual)
         {
@@ -231,15 +233,10 @@ namespace DvMod.HeadsUpDisplay
             float maxBrakeCylinderPressure = GetBrakeCylinderPressure(firstCar);
             float maxBrakeFactor = firstCar.brakeSystem.brakingFactor;
 
-            bool hasBrakeCharging = false;
-            bool hasBrakeApplying = false;
+            var brakeModes = new SortedSet<char>();
 
             if (!CarTypes.IsAnyLocomotiveOrTender(firstCar.carType))
-            {
-                float tripleValveState = GetTripleValveState(firstCar);
-                hasBrakeCharging |= tripleValveState == 0f;
-                hasBrakeApplying |= tripleValveState == 1f;
-            }
+                brakeModes.Add(GetTripleValveState(firstCar));
 
             int i = 0;
             foreach (var car in cars)
@@ -268,8 +265,7 @@ namespace DvMod.HeadsUpDisplay
                             minBrakeReservoirPressure,
                             maxBrakeCylinderPressure,
                             maxBrakeFactor,
-                            hasBrakeCharging,
-                            hasBrakeApplying);
+                            brakeModes);
                     }
 
                     // start new group
@@ -282,13 +278,10 @@ namespace DvMod.HeadsUpDisplay
                     minBrakeReservoirPressure = auxReservoirPressure;
                     maxBrakeCylinderPressure = brakeCylinderPressure;
                     maxBrakeFactor = brakeSystem.brakingFactor;
+                    brakeModes.Clear();
 
                     if (!CarTypes.IsAnyLocomotiveOrTender(car.carType))
-                    {
-                        float tripleValveState = GetTripleValveState(car);
-                        hasBrakeCharging = tripleValveState == 0f;
-                        hasBrakeApplying = tripleValveState == 1f;
-                    }
+                        brakeModes.Add(GetTripleValveState(car));
                 }
                 else
                 {
@@ -305,11 +298,7 @@ namespace DvMod.HeadsUpDisplay
                         maxBrakeFactor = brakeSystem.brakingFactor;
 
                     if (!CarTypes.IsAnyLocomotiveOrTender(car.carType))
-                    {
-                        float tripleValveState = GetTripleValveState(car);
-                        hasBrakeCharging |= tripleValveState == 0f;
-                        hasBrakeApplying |= tripleValveState == 1f;
-                    }
+                        brakeModes.Add(GetTripleValveState(car));
                 }
                 i++;
             }
@@ -326,8 +315,7 @@ namespace DvMod.HeadsUpDisplay
                 minBrakeReservoirPressure,
                 maxBrakeCylinderPressure,
                 maxBrakeFactor,
-                hasBrakeCharging,
-                hasBrakeApplying);
+                brakeModes);
         }
 
         private const char EnDash = '\u2013';
@@ -487,6 +475,13 @@ namespace DvMod.HeadsUpDisplay
         private void DrawCarBrakeStatus(IEnumerable<CarGroup> groups)
         {
             GUILayout.Space(ColumnSpacing);
+
+            GUILayout.BeginVertical();
+            GUILayout.Label("Mode", noWrap);
+            foreach (var group in groups)
+                GUILayout.Label(string.Join("", group.brakeModes), noWrap);
+            GUILayout.EndVertical();
+
             GUILayout.BeginVertical();
             GUILayout.Label("Pipe", noWrap);
             foreach (var group in groups)
@@ -499,22 +494,14 @@ namespace DvMod.HeadsUpDisplay
                 GUILayout.BeginVertical();
                 GUILayout.Label("Res", noWrap);
                 foreach (var group in groups)
-                {
-                    GUILayout.Label(
-                        group.minBrakeReservoirPressure.ToString("F1"),
-                        group.hasBrakeCharging ? noWrapBold : noWrap);
-                }
+                    GUILayout.Label(group.minBrakeReservoirPressure.ToString("F1"), noWrap);
                 GUILayout.EndVertical();
 
                 GUILayout.Space(ColumnSpacing);
                 GUILayout.BeginVertical();
                 GUILayout.Label("Cyl", noWrap);
                 foreach (var group in groups)
-                {
-                    GUILayout.Label(
-                        group.maxBrakeCylinderPressure.ToString("F1"),
-                        group.hasBrakeApplying ? noWrapBold : noWrap);
-                }
+                    GUILayout.Label(group.maxBrakeCylinderPressure.ToString("F1"), noWrap);
                 GUILayout.EndVertical();
             }
 

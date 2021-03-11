@@ -21,6 +21,11 @@ namespace DvMod.HeadsUpDisplay
             where U : struct =>
             (value == null) ? null : f(value);
 
+        public static U? FlatMap<T, U>(this T? value, Func<T, U?> f)
+            where T : struct
+            where U : struct =>
+            (value == null) ? null : f((T)value);
+
         public static T? When<T>(bool condition, T value)
             where T : struct =>
             condition ? (T?)value : null;
