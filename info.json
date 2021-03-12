@@ -2,7 +2,7 @@
   "Id": "HeadsUpDisplay",
   "DisplayName": "Heads-up Display",
   "Author": "Zeibach",
-  "Version": "0.5.1",
+  "Version": "0.5.2",
   "AssemblyName": "HeadsUpDisplay.dll",
   "EntryMethod": "DvMod.HeadsUpDisplay.Main.Load",
   "HomePage": "https://www.nexusmods.com/derailvalley/mods/206",
