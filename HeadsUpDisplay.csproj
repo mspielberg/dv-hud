@@ -19,11 +19,13 @@
     <Reference Include="0Harmony" />
     <Reference Include="BezierCurves" />
     <Reference Include="DV.BrakeSystem" />
+    <Reference Include="DV.PointSet" />
     <Reference Include="DV.Utils" />
     <Reference Include="UnityEngine.CoreModule" />
     <Reference Include="UnityEngine.IMGUIModule" />
     <Reference Include="UnityEngine.PhysicsModule" />
     <Reference Include="UnityEngine.TextRenderingModule" />
     <Reference Include="UnityModManager" />
+    <Reference Include="net.smkd.vector3d" />
   </ItemGroup>
 </Project>
