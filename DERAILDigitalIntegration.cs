@@ -106,6 +106,8 @@ namespace DvMod.HeadsUpDisplay
             while (tablet == null)
             {
                 yield return WaitFor.Seconds(1f);
+                if (!UnityModManager.FindMod("DERAILDigital").Enabled)
+                    continue;
                 var tabletControllerType = FindTabletControllerType();
                 if (tabletControllerType == null)
                 {
