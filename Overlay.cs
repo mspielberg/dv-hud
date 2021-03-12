@@ -213,7 +213,7 @@ namespace DvMod.HeadsUpDisplay
 
         private char GetTripleValveState(TrainCar car)
         {
-            var provider = Registry.GetProvider("Train brake position");
+            var provider = Registry.GetProvider("Triple valve mode");
             var value = provider.FlatMap(p => p.GetValue(car));
             var c = value.FlatMap(v => (char?)v);
             return c ?? default;
@@ -472,45 +472,28 @@ namespace DvMod.HeadsUpDisplay
             return job?.tasks.Select(task => GetNextDestinationTrack(task, car)).FirstOrDefault(track => track != null);
         }
 
+        private void DrawColumn(IEnumerable<CarGroup> groups, string label, Func<CarGroup, string> renderer, GUIStyle? style = null)
+        {
+            style ??= noWrap;
+            GUILayout.Space(ColumnSpacing);
+            GUILayout.BeginVertical();
+            GUILayout.Label(label, style);
+            foreach (var group in groups)
+                GUILayout.Label(renderer(group), style);
+            GUILayout.EndVertical();
+        }
+
         private void DrawCarBrakeStatus(IEnumerable<CarGroup> groups)
         {
-            GUILayout.Space(ColumnSpacing);
-
-            GUILayout.BeginVertical();
-            GUILayout.Label("Mode", noWrap);
-            foreach (var group in groups)
-                GUILayout.Label(string.Join("", group.brakeModes), noWrap);
-            GUILayout.EndVertical();
-
-            GUILayout.BeginVertical();
-            GUILayout.Label("Pipe", noWrap);
-            foreach (var group in groups)
-                GUILayout.Label(group.minBrakePipePressure.ToString("F1"), noWrap);
-            GUILayout.EndVertical();
-
-            if (UnityModManager.FindMod("AirBrake") != null)
+            var airBrakeModEnabled = UnityModManager.FindMod("AirBrake")?.Enabled ?? false;
+            DrawColumn(groups, "Pipe", g => g.minBrakePipePressure.ToString("F2"));
+            if (airBrakeModEnabled)
             {
-                GUILayout.Space(ColumnSpacing);
-                GUILayout.BeginVertical();
-                GUILayout.Label("Res", noWrap);
-                foreach (var group in groups)
-                    GUILayout.Label(group.minBrakeReservoirPressure.ToString("F1"), noWrap);
-                GUILayout.EndVertical();
-
-                GUILayout.Space(ColumnSpacing);
-                GUILayout.BeginVertical();
-                GUILayout.Label("Cyl", noWrap);
-                foreach (var group in groups)
-                    GUILayout.Label(group.maxBrakeCylinderPressure.ToString("F1"), noWrap);
-                GUILayout.EndVertical();
+                DrawColumn(groups, "Res", g => g.minBrakeReservoirPressure.ToString("F2"));
+                DrawColumn(groups, "Mode", g => string.Join("", g.brakeModes));
+                DrawColumn(groups, "Cyl", g => g.maxBrakeCylinderPressure.ToString("F2"));
             }
-
-            GUILayout.Space(ColumnSpacing);
-            GUILayout.BeginVertical();
-            GUILayout.Label("Force", noWrap);
-            foreach (var group in groups)
-                GUILayout.Label($"{group.maxBrakeFactor * 100:F0} %", noWrap);
-            GUILayout.EndVertical();
+            DrawColumn(groups, "Force", g => g.maxBrakeFactor.ToString("P0"), rightAlign);
         }
 
         /*
