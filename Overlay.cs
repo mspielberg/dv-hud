@@ -375,11 +375,9 @@ namespace DvMod.HeadsUpDisplay
 
             var isMultipleUnitCapable = car.TryGetComponent<MultipleUnitModule>(out var muModule);
             var frontMUDisconnected = isMultipleUnitCapable
-                && car.frontCoupler.IsCoupled()
-                && car.rearCoupler.coupledTo?.train?.carType == car.carType
+                && car.frontCoupler.coupledTo?.train?.carType == car.carType
                 && !muModule.frontCable.IsConnected;
             var rearMUDisconnected = isMultipleUnitCapable
-                && car.rearCoupler.IsCoupled()
                 && car.rearCoupler.coupledTo?.train?.carType == car.carType
                 && !muModule.rearCable.IsConnected;
             var hasDisconnectedMUCable = frontMUDisconnected || rearMUDisconnected;
