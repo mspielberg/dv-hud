@@ -155,6 +155,7 @@ namespace DvMod.HeadsUpDisplay
             public readonly int endIndex;
             public readonly List<TrainCar> cars;
             public readonly float maxStress;
+            public readonly float? maxCouplerStress;
             public readonly Job? job;
             public readonly Track? nextDestination;
 
@@ -170,6 +171,7 @@ namespace DvMod.HeadsUpDisplay
                 int endIndex,
                 List<TrainCar> cars,
                 float maxStress,
+                float? maxCouplerStress,
                 Job? job,
                 Track? nextDestination,
                 float minBrakePipePressure,
@@ -182,6 +184,7 @@ namespace DvMod.HeadsUpDisplay
                 this.endIndex = endIndex;
                 this.cars = cars;
                 this.maxStress = maxStress;
+                this.maxCouplerStress = maxCouplerStress;
                 this.job = job;
                 this.nextDestination = nextDestination;
                 this.minBrakePipePressure = minBrakePipePressure;
@@ -197,6 +200,33 @@ namespace DvMod.HeadsUpDisplay
             {
                 return $"{startIndex}-{endIndex} {string.Join(",", cars.Select(c => c.ID))} {maxStress} {job?.ID}";
             }
+        }
+
+        private float? GetCouplerStress(IEnumerable<TrainCar> cars, int index)
+        {
+            if (index == 0)
+                return null;
+            var frontCouplerRegistry = Registry.GetProvider("Front coupler");
+            if (frontCouplerRegistry == null)
+                return null;
+            var rearCouplerRegistry = Registry.GetProvider("Rear coupler");
+            if (rearCouplerRegistry == null)
+                return null;
+
+            var frontCar = cars.ElementAt(index - 1);
+            var rearCar = cars.ElementAt(index);
+            static bool? IsFrontCoupler(TrainCar car, TrainCar attached) =>
+                car.frontCoupler.springyCJ && car.frontCoupler.coupledTo.train == attached ? (bool?)true
+                : car.rearCoupler.springyCJ && car.rearCoupler.coupledTo.train == attached ? (bool?)false
+                : null;
+            var frontCarCoupler = IsFrontCoupler(frontCar, rearCar);
+            var rearCarCoupler = IsFrontCoupler(rearCar, frontCar);
+            // Main.DebugLog($"car={rearCar.ID}: frontCarCoupler=({frontCarCoupler.HasValue},{frontCarCoupler}),rearCarCoupler=({rearCarCoupler.HasValue},{rearCarCoupler})");
+            if (frontCarCoupler != null)
+                return ((bool)frontCarCoupler ? frontCouplerRegistry : rearCouplerRegistry).GetValue(frontCar);
+            if (rearCarCoupler != null)
+                return ((bool)rearCarCoupler ? frontCouplerRegistry : rearCouplerRegistry).GetValue(rearCar);
+            return null;
         }
 
         private float GetAuxReservoirPressure(TrainCar car) =>
@@ -225,6 +255,7 @@ namespace DvMod.HeadsUpDisplay
             Track? prevDestTrack = null;
             int startIndex = 0;
             float maxStress = 0f;
+            float? maxCouplerStress = null;
 
             var firstCar = cars.First();
             var groupCars = new List<TrainCar>() { firstCar };
@@ -239,9 +270,10 @@ namespace DvMod.HeadsUpDisplay
                 brakeModes.Add(GetTripleValveState(firstCar));
 
             int i = 0;
-            foreach (var car in cars)
+            foreach (var (car, index) in cars.Select((x, i) => (x, i)))
             {
                 float carStress = car.GetComponent<TrainStress>().derailBuildUp;
+                float? couplerStress = GetCouplerStress(cars, index);
                 Job? job = JobChainController.GetJobOfCar(car);
                 Track? nextDestination = GetNextDestinationTrack(job, car.logicCar);
                 BrakeSystem brakeSystem = car.brakeSystem;
@@ -259,6 +291,7 @@ namespace DvMod.HeadsUpDisplay
                             i,
                             groupCars,
                             maxStress,
+                            maxCouplerStress,
                             prevJob,
                             prevDestTrack,
                             minBrakePipePressure,
@@ -274,6 +307,7 @@ namespace DvMod.HeadsUpDisplay
                     prevJob = job;
                     prevDestTrack = nextDestination;
                     maxStress = carStress;
+                    maxCouplerStress = couplerStress;
                     minBrakePipePressure = pipePressure;
                     minBrakeReservoirPressure = auxReservoirPressure;
                     maxBrakeCylinderPressure = brakeCylinderPressure;
@@ -288,6 +322,8 @@ namespace DvMod.HeadsUpDisplay
                     groupCars.Add(car);
                     if (carStress > maxStress)
                         maxStress = carStress;
+                    if (couplerStress != null && (maxCouplerStress == null || couplerStress > maxCouplerStress))
+                        maxCouplerStress = couplerStress;
                     if (pipePressure < minBrakePipePressure)
                         minBrakeReservoirPressure = auxReservoirPressure;
                     if (auxReservoirPressure < minBrakeReservoirPressure)
@@ -309,6 +345,7 @@ namespace DvMod.HeadsUpDisplay
                 i,
                 groupCars,
                 maxStress,
+                maxCouplerStress,
                 prevJob,
                 prevDestTrack,
                 minBrakePipePressure,
@@ -354,6 +391,8 @@ namespace DvMod.HeadsUpDisplay
 
             if (Main.settings.showCarStress)
                 DrawCarStress(groups);
+            if (Main.settings.showCarStress && Registry.GetProvider("Front coupler") != null)
+                DrawCouplerStress(groups);
             if (Main.settings.showCarJobs)
                 DrawCarJobs(groups);
             if (Main.settings.showCarDestinations)
@@ -398,13 +437,36 @@ namespace DvMod.HeadsUpDisplay
 
             GUILayout.Space(ColumnSpacing);
             GUILayout.BeginVertical();
-            GUILayout.Label("Stress", noWrap);
+            GUILayout.Label("Derail", noWrap);
             foreach (CarGroup group in groups)
             {
                 var buildup = group.maxStress;
                 var buildupPct = buildup / derailThreshold * 100;
                 GUI.contentColor = Color.HSVToRGB(Mathf.Lerp(1f / 3f, 0, (buildupPct - 30f) / 40f), 1f, 1f);
                 GUILayout.Label(buildupPct.ToString("F0"), rightAlign);
+            }
+            GUI.contentColor = Color.white;
+            GUILayout.EndVertical();
+        }
+
+        private void DrawCouplerStress(IEnumerable<CarGroup> groups)
+        {
+            GUILayout.Space(ColumnSpacing);
+            GUILayout.BeginVertical();
+            GUILayout.Label("Coupler", noWrap);
+            foreach (CarGroup group in groups)
+            {
+                var stress = group.maxCouplerStress;
+                if (stress == null)
+                {
+                    GUILayout.Label(" ", rightAlign);
+                }
+                else
+                {
+                    float stressPct = (float)stress / 1e4f;
+                    GUI.contentColor = Color.HSVToRGB(Mathf.Lerp(1f / 3f, 0, (stressPct - 30f) / 40f), 1f, 1f);
+                    GUILayout.Label(stressPct.ToString("F0"), rightAlign);
+                }
             }
             GUI.contentColor = Color.white;
             GUILayout.EndVertical();
