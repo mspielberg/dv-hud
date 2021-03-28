@@ -1,6 +1,7 @@
 {
   "Releases":
   [
+      {"Id": "HeadsUpDisplay", "Version": "0.5.3", "DownloadUrl": "https://github.com/mspielberg/dv-hud/releases/download/v0.5.3/HeadsUpDisplay_0.5.3.zip"},
       {"Id": "HeadsUpDisplay", "Version": "0.5.2", "DownloadUrl": "https://github.com/mspielberg/dv-hud/releases/download/v0.5.2/HeadsUpDisplay_0.5.2.zip"},
       {"Id": "HeadsUpDisplay", "Version": "0.5.1", "DownloadUrl": "https://github.com/mspielberg/dv-hud/releases/download/v0.5.1/HeadsUpDisplay_0.5.1.zip"},
       {"Id": "HeadsUpDisplay", "Version": "0.5.0", "DownloadUrl": "https://github.com/mspielberg/dv-hud/releases/download/v0.5.0/HeadsUpDisplay_0.5.0.zip"},
