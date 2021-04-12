@@ -9,6 +9,7 @@ using UnityModManagerNet;
 
 namespace DvMod.HeadsUpDisplay
 {
+    /*
     internal class TabletWrapper
     {
         private readonly object tablet;
@@ -228,4 +229,5 @@ namespace DvMod.HeadsUpDisplay
             StartCoroutine(SearchForTablet());
         }
     }
+    */
 }

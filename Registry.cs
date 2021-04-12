@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnitsNet;
 
 namespace DvMod.HeadsUpDisplay
 {
@@ -25,7 +26,7 @@ namespace DvMod.HeadsUpDisplay
 
         public static void RegisterPull(string label, Provider provider, Formatter formatter, IComparable order)
         {
-            Register(new QueryDataProvider(label, provider, formatter, order));
+            Register(new QueryDataProvider(label, car => provider(car).Map(v => Scalar.FromAmount(v)), QuantityType.Scalar, formatter, order));
         }
 
         public static Pusher RegisterPush(string label, Formatter formatter, IComparable order)

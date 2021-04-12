@@ -1,3 +1,5 @@
+using UnitsNet;
+using UnitsNet.Units;
 using UnityEngine;
 
 namespace DvMod.HeadsUpDisplay
@@ -13,32 +15,33 @@ namespace DvMod.HeadsUpDisplay
         {
             Registry.Register(new QueryDataProvider(
                 "Speed",
-                car => Mathf.Abs(car.GetForwardSpeed()) * 3.6f,
-                f => $"{f:F1} km/h"));
+                car => Speed.FromMetersPerSecond(Mathf.Abs(car.GetForwardSpeed())),
+                QuantityType.Speed));
 
             Registry.Register(new QueryDataProvider(
                 "Grade",
-                car => {
+                car =>
+                {
                     var inclination = car.transform.localEulerAngles.x;
                     inclination = inclination > 180 ? 360f - inclination : -inclination;
-                    return Mathf.Tan(inclination * Mathf.PI / 180) * 100;
+                    return Ratio.FromDecimalFractions(Mathf.Tan(inclination * Mathf.PI / 180)).ToUnit(RatioUnit.Percent);
                 },
-                f => f.ToString(GradeFormat)));
+                QuantityType.Ratio));
 
             Registry.Register(new QueryDataProvider(
                 "Brake pipe",
-                car => car.brakeSystem?.brakePipePressure,
-                f => $"{f:F2} bar"));
+                car => Pressure.FromBars(car.brakeSystem.brakePipePressure),
+                QuantityType.Pressure));
 
             Registry.Register(new QueryDataProvider(
                 "Consist mass",
-                car => car.trainset.TotalMass(),
-                f => $"{f / 1000:F0} t"));
+                car => Mass.FromKilograms(car.trainset.TotalMass()),
+                QuantityType.Mass));
 
             Registry.Register(new QueryDataProvider(
                 "Consist length",
-                car => car.trainset.OverallLength(),
-                f => $"{f:F0} m"));
+                car => Length.FromMeters(car.trainset.OverallLength()),
+                QuantityType.Length));
         }
     }
 }

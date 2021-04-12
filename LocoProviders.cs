@@ -2,6 +2,7 @@ using DV;
 using HarmonyLib;
 using System.Collections.Generic;
 using System.Reflection;
+using UnitsNet;
 using UnityEngine;
 
 namespace DvMod.HeadsUpDisplay
@@ -24,8 +25,8 @@ namespace DvMod.HeadsUpDisplay
             Registry.Register(indicatedPowerProvider);
             Registry.Register(new QueryDataProvider(
                 "Slip",
-                car => car.GetComponent<DrivingForce>()?.wheelslip,
-                f => $"{f:P1}"));
+                car => (car.GetComponent<DrivingForce>()?.wheelslip).Map(f => Ratio.FromDecimalFractions(f)),
+                QuantityType.Ratio));
 
             SteamLocoProviders.Register();
         }
@@ -37,8 +38,9 @@ namespace DvMod.HeadsUpDisplay
             {
                 if (!AppUtil.IsPaused)
                 {
-                    tractiveEffortProvider.SetValue(__instance.train, __result);
-                    indicatedPowerProvider.SetValue(__instance.train, __result * __instance.GetSpeedKmH() / 3.6f);
+                    var tractiveEffort = Force.FromNewtons(__result);
+                    tractiveEffortProvider.SetQuantity(__instance.train, tractiveEffort);
+                    indicatedPowerProvider.SetQuantity(__instance.train, tractiveEffort * Speed.FromKilometersPerHour(__instance.GetSpeedKmH()));
                 }
             }
 
@@ -59,7 +61,7 @@ namespace DvMod.HeadsUpDisplay
             public static void Postfix(DrivingForce __instance, Bogie bogie)
             {
                 var car = bogie.Car;
-                adhesionProvider.SetValue(car, (float)slipLimitField.GetValue(__instance) * car.Bogies.Length);
+                adhesionProvider.SetQuantity(car, Force.FromNewtons((float)slipLimitField.GetValue(__instance)) * car.Bogies.Length);
             }
         }
     }
@@ -78,7 +80,7 @@ namespace DvMod.HeadsUpDisplay
         {
             public static bool Prefix(SteamLocoSimulation __instance)
             {
-                cutoffProvider.SetValue(TrainCar.Resolve(__instance.gameObject), __instance.cutoff.value);
+                cutoffProvider.SetQuantity(TrainCar.Resolve(__instance.gameObject), Ratio.FromDecimalFractions(__instance.cutoff.value));
                 return true;
             }
         }

@@ -1,54 +1,50 @@
 using System;
+using UnitsNet;
 
 namespace DvMod.HeadsUpDisplay
 {
-    using Provider = Func<TrainCar, float?>;
     using Formatter = Func<float, string>;
 
     public abstract class DataProvider
     {
         public string Label { get; }
         public IComparable Order { get; }
-        private readonly Formatter formatter;
+        private readonly Formatter? formatter;
+        public readonly QuantityType quantityType;
 
-        public abstract float? GetValue(TrainCar car);
+        public abstract IQuantity? GetQuantity(TrainCar car);
 
         public string? GetFormatted(TrainCar car)
         {
-            return GetValue(car) switch
-            {
-                float v => formatter(v),
-                _ => null,
-            };
+            var q = GetQuantity(car);
+            if (q == null)
+                return null;
+            if (q.QuantityInfo.ValueType == typeof(Scalar))
+                return formatter!((float)q.Value);
+            else
+                return q.ToUnit(Main.settings.GetUnit(Label)).ToString();
         }
 
-        protected DataProvider(string label, IComparable? order, Formatter formatter)
+        protected DataProvider(string label, QuantityType quantityType, Formatter? formatter = null, IComparable? order = null)
         {
             Label = label;
             Order = order ?? label;
+            this.quantityType = quantityType;
             this.formatter = formatter;
         }
     }
 
     public class QueryDataProvider : DataProvider
     {
-        private readonly Provider provider;
+        private readonly Func<TrainCar, IQuantity?> provider;
 
-        public QueryDataProvider(string label, Provider provider, Formatter formatter, IComparable? order = null)
-        : base(label, order, formatter)
+        public QueryDataProvider(string label, Func<TrainCar, IQuantity?> provider, QuantityType quantityType, Formatter? formatter = null, IComparable? order = null)
+        : base(label, quantityType, formatter, order)
         {
             this.provider = provider;
         }
 
-        public override float? GetValue(TrainCar car)
-        {
-            return provider(car);
-        }
-
-        public override string ToString()
-        {
-            return $"QueryProvider {Label}";
-        }
+        public override IQuantity? GetQuantity(TrainCar car) => provider(car);
     }
 
     public static class DataProviders

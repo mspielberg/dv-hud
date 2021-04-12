@@ -1,18 +1,18 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnitsNet;
+using UnitsNet.Units;
 using Formatter = System.Func<float, string>;
 
 namespace DvMod.HeadsUpDisplay
 {
     public class PushProvider : DataProvider
     {
-        private readonly Dictionary<string, float> values = new Dictionary<string, float>();
+        private readonly Dictionary<string, IQuantity> values = new Dictionary<string, IQuantity>();
 
-        private const float alpha = 0.1f;
-
-        public PushProvider(string label, Formatter formatter, IComparable? order = null)
-        : base(label, order, formatter)
+        public PushProvider(string label, Formatter formatter, IComparable? order = null, QuantityType quantityType = QuantityType.Undefined)
+        : base(label, quantityType, formatter, order)
         {
         }
 
@@ -21,24 +21,20 @@ namespace DvMod.HeadsUpDisplay
             return $"PushProvider {Label}: {values.Aggregate("", (a,b) => a + b.ToString())}";
         }
 
-        public override float? GetValue(TrainCar car)
+        public override IQuantity? GetQuantity(TrainCar car)
         {
-            return values.TryGetValue(car.ID, out var value) ? value : (float?)null;
+            return values.TryGetValue(car.ID, out var value) ? value : null;
         }
 
         public void SetValue(TrainCar car, float value)
         {
-            // Main.DebugLog($"Setting value {value} for {car.ID} into {this}");
-            values.Remove(car.ID);
-            values.Add(car.ID, value);
+            SetQuantity(car, Scalar.From(value, ScalarUnit.Undefined));
         }
 
-        public void MixSmoothedValue(TrainCar car, float value)
+        public void SetQuantity(TrainCar car, IQuantity value)
         {
-            // Main.DebugLog($"Mixing value {value} for {car.ID} into {this}");
-            values.TryGetValue(car.ID, out var oldValue);
-            SetValue(car, (oldValue * alpha) + (value * (1f - alpha)));
-            // Main.DebugLog($"After mix: {this}");
+            values.Remove(car.ID);
+            values.Add(car.ID, value);
         }
     }
 }
