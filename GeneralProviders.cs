@@ -12,6 +12,11 @@ namespace DvMod.HeadsUpDisplay
         public static void Register()
         {
             Registry.Register(new QueryDataProvider(
+                "Altitude",
+                car => car.transform.position.y - 110f,
+                f => $"{f:F1} m"));
+
+            Registry.Register(new QueryDataProvider(
                 "Speed",
                 car => Mathf.Abs(car.GetForwardSpeed()) * 3.6f,
                 f => $"{f:F1} km/h"));
