@@ -53,6 +53,8 @@ namespace DvMod.HeadsUpDisplay
         [Draw("Brake status", VisibleOn = "showCarList|true")] public bool showCarBrakeStatus = true;
 
         [Draw("Enable logging")] public bool enableLogging;
+        [Draw("Lock position")] public bool lockPosition;
+
         public readonly string? version = Main.mod?.Info.Version;
 
         public Vector2 hudPosition;

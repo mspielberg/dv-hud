@@ -118,7 +118,9 @@ namespace DvMod.HeadsUpDisplay
                 DrawCarList();
 
             GUILayout.EndVertical();
-            GUI.DragWindow();
+
+            if (!Main.settings.lockPosition)
+                GUI.DragWindow();
         }
 
         private void DrawCurrentCarInfo()
