@@ -34,16 +34,6 @@ namespace DvMod.HeadsUpDisplay
                 "Brake pipe",
                 car => car.brakeSystem?.brakePipePressure,
                 f => $"{f:F2} bar"));
-
-            Registry.Register(new QueryDataProvider(
-                "Consist mass",
-                car => car.trainset.TotalMass(),
-                f => $"{f / 1000:F0} t"));
-
-            Registry.Register(new QueryDataProvider(
-                "Consist length",
-                car => car.trainset.OverallLength(),
-                f => $"{f:F0} m"));
         }
     }
 }

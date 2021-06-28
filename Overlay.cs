@@ -109,13 +109,13 @@ namespace DvMod.HeadsUpDisplay
 
             if (Main.settings.showDrivingInfo)
                 DrawCurrentCarInfo();
-            if (Main.settings.showTrackInfo)
+            if (Main.settings.trackInfoSettings.enabled)
                 DrawUpcomingEvents();
 
             GUILayout.EndHorizontal();
 
-            if (Main.settings.showCarList)
-                DrawCarList();
+            if (Main.settings.trainInfoSettings.enabled)
+                DrawTrainInfo();
 
             GUILayout.EndVertical();
 
@@ -134,7 +134,7 @@ namespace DvMod.HeadsUpDisplay
                 .Select(dp => (dp.Label, dp.GetFormatted(PlayerManager.Car)))
                 .Where(p => p.Item2 != null);
 
-            GUILayout.BeginHorizontal("box");
+            GUILayout.BeginHorizontal("box", GUILayout.ExpandHeight(true));
             GUILayout.BeginVertical();
             foreach (var (label, value) in labelsAndValues)
             {
@@ -358,19 +358,43 @@ namespace DvMod.HeadsUpDisplay
                 brakeModes);
         }
 
-        private const char EnDash = '\u2013';
-        private void DrawCarList()
+        private void DrawTrainInfo()
         {
             var trainset = PlayerManager.Car?.trainset ?? PlayerManager.LastLoco?.trainset;
             if (trainset == null)
                 return;
+
+            GUILayout.BeginVertical("box");
+
+            if (Main.settings.trainInfoSettings.showTrainInfo)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Train");
+                GUILayout.Space(ColumnSpacing);
+                GUILayout.Label($"{trainset.cars.Count} car{(trainset.cars.Count > 1 ? "s" : "")}");
+                GUILayout.Space(ColumnSpacing);
+                GUILayout.Label($"{trainset.OverallLength():F0} m");
+                GUILayout.Space(ColumnSpacing);
+                GUILayout.Label($"{trainset.TotalMass() / 1000:F0} t");
+                GUILayout.EndHorizontal();
+            }
+
+            if (Main.settings.trainInfoSettings.showCarList)
+                DrawCarList(trainset);
+
+            GUILayout.EndVertical();
+        }
+
+        private const char EnDash = '\u2013';
+        private void DrawCarList(Trainset trainset)
+        {
+            var trainInfoSettings = Main.settings.trainInfoSettings;
             IEnumerable<TrainCar> cars = trainset.cars.AsReadOnly();
             if (cars.Last() == PlayerManager.LastLoco || (!cars.First().IsLoco && cars.Last().IsLoco))
                 cars = cars.Reverse();
+            var groups = GetCarGroups(cars, !trainInfoSettings.groupCarsByJob);
 
-            var groups = GetCarGroups(cars, !Main.settings.groupCarsByJob);
-
-            GUILayout.BeginHorizontal("box");
+            GUILayout.BeginHorizontal();
             GUILayout.BeginVertical();
             GUILayout.Label(" ", noWrap);
             foreach (CarGroup group in groups)
@@ -392,16 +416,15 @@ namespace DvMod.HeadsUpDisplay
             GUI.contentColor = Color.white;
             GUILayout.EndVertical();
 
-            if (Main.settings.showCarStress)
+            if (trainInfoSettings.showCarStress)
                 DrawCarStress(groups);
-            if (Main.settings.showCarStress && Registry.GetProvider("Front coupler") != null)
+            if (trainInfoSettings.showCarStress && Registry.GetProvider("Front coupler") != null)
                 DrawCouplerStress(groups);
-            if (Main.settings.showCarJobs)
+            if (trainInfoSettings.showCarJobs)
                 DrawCarJobs(groups);
-            if (Main.settings.showCarDestinations)
+            if (trainInfoSettings.showCarDestinations)
                 DrawCarDestinations(groups);
-
-            if (Main.settings.showCarBrakeStatus)
+            if (trainInfoSettings.showCarBrakeStatus)
                 DrawCarBrakeStatus(groups);
 
             GUILayout.EndHorizontal();
@@ -609,6 +632,8 @@ namespace DvMod.HeadsUpDisplay
             if (!PlayerManager.Car)
                 return;
 
+            var trackInfoSettings = Main.settings.trackInfoSettings;
+
             var bogie = PlayerManager.Car.Bogies[1];
             var track = bogie.track;
             if (track == null)
@@ -621,15 +646,15 @@ namespace DvMod.HeadsUpDisplay
             var events = TrackFollower.FollowTrack(
                 track,
                 startSpan,
-                direction ? Main.settings.maxEventSpan : -Main.settings.maxEventSpan);
+                direction ? trackInfoSettings.maxEventSpan : -trackInfoSettings.maxEventSpan);
 
             var eventDescriptions = events
                 .ExceptUnnamedTracks()
                 .ResolveJunctionSpeedLimits()
                 .FilterRedundantSpeedLimits()
                 .FilterGradeEvents(currentGrade)
-                .Take(Main.settings.maxEventCount)
-                .TakeWhile(ev => ev.span < Main.settings.maxEventSpan)
+                .Take(trackInfoSettings.maxEventCount)
+                .TakeWhile(ev => ev.span < trackInfoSettings.maxEventSpan)
                 .Select(ev => ev switch
                     {
                         TrackChangeEvent e => (e.span, e.ID.ToString()),
@@ -641,12 +666,12 @@ namespace DvMod.HeadsUpDisplay
                     })
                 .ToList();
 
-            GUILayout.BeginHorizontal("box");
+            GUILayout.BeginHorizontal("box", GUILayout.ExpandHeight(true));
 
             GUILayout.BeginVertical(GUILayout.MaxWidth(50));
             foreach ((double span, string desc) in eventDescriptions)
                 GUILayout.Label($"{Math.Round(span / 10) * 10:F0} m", rightAlign);
-            for (int i = eventDescriptions.Count; i < Main.settings.maxEventCount; i++)
+            for (int i = eventDescriptions.Count; i < trackInfoSettings.maxEventCount; i++)
                 GUILayout.Label(" ");
             GUILayout.EndVertical();
 
@@ -655,7 +680,7 @@ namespace DvMod.HeadsUpDisplay
             GUILayout.BeginVertical();
             foreach ((double span, string desc) in eventDescriptions)
                 GUILayout.Label(desc, richText);
-            for (int i = eventDescriptions.Count; i < Main.settings.maxEventCount; i++)
+            for (int i = eventDescriptions.Count; i < trackInfoSettings.maxEventCount; i++)
                 GUILayout.Label(" ");
             GUILayout.EndVertical();
 

@@ -40,21 +40,35 @@ namespace DvMod.HeadsUpDisplay
             public bool IsEnabled(DataProvider dp) => !disabledProviders.Contains(dp.Label);
         }
 
+        public class TrackInfoSettings
+        {
+            [Draw("Enable")] public bool enabled = true;
+            [Draw("Max events", VisibleOn = "enabled|true")] public int maxEventCount = 10;
+            [Draw("Max distance", VisibleOn = "enabled|true")] public double maxEventSpan = 5000;
+        }
+
+        public class TrainInfoSettings
+        {
+            [Draw("Enable")] public bool enabled = true;
+            [Draw("Length & mass")] public bool showTrainInfo = true;
+            [Draw("Car list")] public bool showCarList = true;
+            [Draw("Group by job", VisibleOn = "showCarList|true")] public bool groupCarsByJob = true;
+            [Draw("Stress", VisibleOn = "showCarList|true")] public bool showCarStress = true;
+            [Draw("Job ID", VisibleOn = "showCarList|true")] public bool showCarJobs = true;
+            [Draw("Destination", VisibleOn = "showCarList|true")] public bool showCarDestinations = true;
+            [Draw("Brake status", VisibleOn = "showCarList|true")] public bool showCarBrakeStatus = true;
+        }
+
         public static Vector2 defaultPosition = new Vector2(10, 10);
 
         public bool showDrivingInfo = true;
         public DrivingInfoSettings drivingInfoSettings = DrivingInfoSettings.Create();
 
-        [Draw("Show track info")] public bool showTrackInfo = true;
-        [Draw("Max events", VisibleOn = "showTrackInfo|true")] public int maxEventCount = 10;
-        [Draw("Max distance", VisibleOn = "showTrackInfo|true")] public double maxEventSpan = 5000;
+        [Draw("Upcoming track info", Collapsible = true, Box = true)]
+        public TrackInfoSettings trackInfoSettings = new TrackInfoSettings();
 
-        [Draw("Show car list")] public bool showCarList = true;
-        [Draw("Group by job", VisibleOn = "showCarList|true")] public bool groupCarsByJob = true;
-        [Draw("Cornering stress", VisibleOn = "showCarList|true")] public bool showCarStress = true;
-        [Draw("Job ID", VisibleOn = "showCarList|true")] public bool showCarJobs = true;
-        [Draw("Destination", VisibleOn = "showCarList|true")] public bool showCarDestinations = true;
-        [Draw("Brake status", VisibleOn = "showCarList|true")] public bool showCarBrakeStatus = true;
+        [Draw("Train info", Collapsible = true, Box = true)]
+        public TrainInfoSettings trainInfoSettings = new TrainInfoSettings();
 
         [Draw("Enable logging")] public bool enableLogging;
         [Draw("Lock position")] public bool lockPosition;

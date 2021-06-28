@@ -183,7 +183,7 @@ namespace DvMod.HeadsUpDisplay
                 .ResolveJunctionSpeedLimits()
                 .FilterRedundantSpeedLimits()
                 .FilterGradeEvents(prevGradeEvent?.grade ?? 0f)
-                .TakeWhile(ev => ev.span < Main.settings.maxEventSpan)
+                .TakeWhile(ev => ev.span < Main.settings.trackInfoSettings.maxEventSpan)
                 .ToArray();
 
             var speedEvents = events.OfType<SpeedLimitEvent>().Select(ev => ((float)ev.span, (float)ev.limit)).ToArray();
