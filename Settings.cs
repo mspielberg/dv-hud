@@ -19,7 +19,11 @@ namespace DvMod.HeadsUpDisplay
             public void Draw()
             {
                 GUILayout.BeginVertical("box");
-                foreach (string key in from dp in Registry.providers.Values orderby dp.Order select dp.Label)
+                var providers = Registry.providers.Values
+                    .Where(dp => !dp.Hidden)
+                    .OrderBy(dp => dp.Order)
+                    .Select(dp => dp.Label);
+                foreach (string key in providers)
                 {
                     GUILayout.BeginHorizontal();
                     GUILayout.Label(key, GUILayout.ExpandWidth(false));

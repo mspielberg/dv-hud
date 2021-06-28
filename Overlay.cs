@@ -129,6 +129,7 @@ namespace DvMod.HeadsUpDisplay
                 return;
 
             var labelsAndValues = Registry.providers.Values
+                .Where(p => !p.Hidden)
                 .Where(Main.settings.IsEnabled)
                 .Select(dp => (dp.Label, dp.GetFormatted(PlayerManager.Car)))
                 .Where(p => p.Item2 != null);

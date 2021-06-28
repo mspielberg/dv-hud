@@ -11,8 +11,8 @@ namespace DvMod.HeadsUpDisplay
 
         private const float alpha = 0.1f;
 
-        public PushProvider(string label, Formatter formatter, IComparable? order = null)
-        : base(label, order, formatter)
+        public PushProvider(string label, Formatter formatter, IComparable? order = null, bool hidden = false)
+        : base(label, order, formatter, hidden)
         {
         }
 

@@ -10,6 +10,7 @@ namespace DvMod.HeadsUpDisplay
         public string Label { get; }
         public IComparable Order { get; }
         private readonly Formatter formatter;
+        public bool Hidden { get; }
 
         public abstract float? GetValue(TrainCar car);
 
@@ -22,11 +23,12 @@ namespace DvMod.HeadsUpDisplay
             };
         }
 
-        protected DataProvider(string label, IComparable? order, Formatter formatter)
+        protected DataProvider(string label, IComparable? order, Formatter formatter, bool hidden)
         {
             Label = label;
             Order = order ?? label;
             this.formatter = formatter;
+            this.Hidden = hidden;
         }
     }
 
@@ -34,8 +36,8 @@ namespace DvMod.HeadsUpDisplay
     {
         private readonly Provider provider;
 
-        public QueryDataProvider(string label, Provider provider, Formatter formatter, IComparable? order = null)
-        : base(label, order, formatter)
+        public QueryDataProvider(string label, Provider provider, Formatter formatter, IComparable? order = null, bool hidden = false)
+        : base(label, order, formatter, hidden)
         {
             this.provider = provider;
         }

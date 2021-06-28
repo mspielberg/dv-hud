@@ -25,7 +25,12 @@ namespace DvMod.HeadsUpDisplay
 
         public static void RegisterPull(string label, Provider provider, Formatter formatter, IComparable order)
         {
-            Register(new QueryDataProvider(label, provider, formatter, order));
+            RegisterPull(label, provider, formatter, order, false);
+        }
+
+        public static void RegisterPull(string label, Provider provider, Formatter formatter, IComparable order, bool hidden)
+        {
+            Register(new QueryDataProvider(label, provider, formatter, order, hidden));
         }
 
         public static Pusher RegisterPush(string label, Formatter formatter, IComparable order)
