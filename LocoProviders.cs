@@ -15,7 +15,7 @@ namespace DvMod.HeadsUpDisplay
             "Adhesion", f => $"{f / 1000:F0} kN");
 
         public static PushProvider indicatedPowerProvider = new PushProvider(
-            "Indicated power", f => $"{f / 1000:F0} kW");
+            "Power", f => $"{f / 1000:F0} kW");
 
         public static void Register()
         {
