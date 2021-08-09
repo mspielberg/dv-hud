@@ -555,14 +555,16 @@ namespace DvMod.HeadsUpDisplay
             return job?.tasks.Select(task => GetNextDestinationTrack(task, car)).FirstOrDefault(track => track != null);
         }
 
-        private void DrawColumn(IEnumerable<CarGroup> groups, string label, Func<CarGroup, string> renderer, GUIStyle? style = null)
+        public static void DrawColumn<T>(IEnumerable<T> cells, string? label = null, Func<T, string>? renderer = null, GUIStyle? style = null)
         {
+            renderer ??= x => x!.ToString();
             style ??= Styles.noWrap;
             GUILayout.Space(ColumnSpacing);
             GUILayout.BeginVertical();
-            GUILayout.Label(label, style);
-            foreach (var group in groups)
-                GUILayout.Label(renderer(group), style);
+            if (label != null)
+                GUILayout.Label(label, style);
+            foreach (var cell in cells)
+                GUILayout.Label(renderer(cell), style);
             GUILayout.EndVertical();
         }
 

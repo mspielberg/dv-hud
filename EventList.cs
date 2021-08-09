@@ -66,24 +66,16 @@ namespace DvMod.HeadsUpDisplay
                     })
                 .ToList();
 
+            static string FormatSpan((double span, string description) ev) => $"{Math.Round(ev.span / 10) * 10:F0} m";
+            var blanks = Enumerable.Repeat(" ", trackInfoSettings.maxEventCount - eventDescriptions.Count);
+
             GUILayout.BeginHorizontal("box", GUILayout.ExpandHeight(true));
-
-            GUILayout.BeginVertical(GUILayout.MaxWidth(50));
-            foreach ((double span, string desc) in eventDescriptions)
-                GUILayout.Label($"{Math.Round(span / 10) * 10:F0} m", Styles.rightAlign);
-            for (int i = eventDescriptions.Count; i < trackInfoSettings.maxEventCount; i++)
-                GUILayout.Label(" ");
-            GUILayout.EndVertical();
-
-            GUILayout.Space(Overlay.ColumnSpacing);
-
-            GUILayout.BeginVertical();
-            foreach ((double span, string desc) in eventDescriptions)
-                GUILayout.Label(desc, Styles.richText);
-            for (int i = eventDescriptions.Count; i < trackInfoSettings.maxEventCount; i++)
-                GUILayout.Label(" ");
-            GUILayout.EndVertical();
-
+            Overlay.DrawColumn(
+                eventDescriptions.Select(FormatSpan).Concat(blanks),
+                style: Styles.rightAlign);
+            Overlay.DrawColumn(
+                eventDescriptions.Select(p => p.Item2).Concat(blanks),
+                style: Styles.richText);
             GUILayout.EndHorizontal();
         }
 
