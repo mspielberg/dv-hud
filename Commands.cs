@@ -1,10 +1,6 @@
 using CommandTerminal;
-using DV.PointSet;
-using DV.Signs;
 using HarmonyLib;
 using System;
-using System.Linq;
-using UnityEngine;
 
 namespace DvMod.HeadsUpDisplay
 {
@@ -28,16 +24,6 @@ namespace DvMod.HeadsUpDisplay
             else
                 Terminal.Autocomplete.Register(name);
             Terminal.Shell.AddCommand(name, proc);
-        }
-
-        private static string GetPath(Component c)
-        {
-            return string.Join("/", c.GetComponentsInParent<Transform>(true).Reverse().Select(c => c.name));
-        }
-
-        private static string DumpHierarchy(GameObject gameObject)
-        {
-            return string.Join("\n", gameObject.GetComponentsInChildren<Component>().Select(c => $"{GetPath(c)} {c.GetType()}"));
         }
 
         public static void Register()
