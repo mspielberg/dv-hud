@@ -10,41 +10,17 @@ using UnityModManagerNet;
 
 namespace DvMod.HeadsUpDisplay
 {
-    public class Overlay : MonoBehaviour
+    public static class Styles
     {
-        private const int ColumnSpacing = 10;
-
-        public static Overlay? instance;
-        private static GUIStyle? noChrome;
-        private static GUIStyle? noWrap;
-        private static GUIStyle? noWrapBold;
-        private static GUIStyle? rightAlign;
-        private static GUIStyle? richText;
-
-        private bool overlayEnabled = false;
-
-        public void Start()
-        {
-            // Wait for a frame because for some reason RaycastAll doesn't detect colliders if called on the same frame.
-            _ = StartCoroutine(DelayedEnable());
-            instance = this;
-        }
-
-        private IEnumerator DelayedEnable()
-        {
-            yield return null;
-            overlayEnabled = true;
-            Main.DebugLog($"Overlay enabled on frame {Time.frameCount}. Fixed update {Time.fixedTime / Time.fixedDeltaTime}");
-        }
+        public static readonly GUIStyle noChrome;
+        public static readonly GUIStyle noWrap;
+        public static readonly GUIStyle noWrapBold;
+        public static readonly GUIStyle rightAlign;
+        public static readonly GUIStyle richText;
 
         /// <summary>Can only be called during OnGui()</summary>
-        private void InitializeStyles()
+        static Styles()
         {
-            if (noChrome != null)
-            {
-                return;
-            }
-
             noChrome = new GUIStyle(GUI.skin.window);
             noChrome.normal.background = null;
             noChrome.onNormal = noChrome.normal;
@@ -70,6 +46,29 @@ namespace DvMod.HeadsUpDisplay
                 richText = true
             };
         }
+    }
+
+    public class Overlay : MonoBehaviour
+    {
+        private const int ColumnSpacing = 10;
+
+        public static Overlay? instance;
+
+        private bool overlayEnabled = false;
+
+        public void Start()
+        {
+            // Wait for a frame because for some reason RaycastAll doesn't detect colliders if called on the same frame.
+            _ = StartCoroutine(DelayedEnable());
+            instance = this;
+        }
+
+        private IEnumerator DelayedEnable()
+        {
+            yield return null;
+            overlayEnabled = true;
+            Main.DebugLog($"Overlay enabled on frame {Time.frameCount}. Fixed update {Time.fixedTime / Time.fixedDeltaTime}");
+        }
 
         private static Rect prevRect = new Rect();
 
@@ -83,8 +82,6 @@ namespace DvMod.HeadsUpDisplay
             if (!Main.enabled)
                 return;
 
-            InitializeStyles();
-
             if (prevRect == new Rect())
                 prevRect.position = Main.settings.hudPosition;
             prevRect = GUILayout.Window(
@@ -92,7 +89,7 @@ namespace DvMod.HeadsUpDisplay
                 prevRect,
                 DrawDrivingInfoWindow,
                 "",
-                noChrome);
+                Styles.noChrome);
             Main.settings.hudPosition = prevRect.position;
         }
 
@@ -139,14 +136,14 @@ namespace DvMod.HeadsUpDisplay
             foreach (var (label, value) in labelsAndValues)
             {
                 if (value != null)
-                    GUILayout.Label(label, noWrap);
+                    GUILayout.Label(label, Styles.noWrap);
             }
             GUILayout.EndVertical();
             GUILayout.BeginVertical();
             foreach (var (label, value) in labelsAndValues)
             {
                 if (value != null)
-                    GUILayout.Label(value, noWrap);
+                    GUILayout.Label(value, Styles.noWrap);
             }
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
@@ -396,22 +393,22 @@ namespace DvMod.HeadsUpDisplay
 
             GUILayout.BeginHorizontal();
             GUILayout.BeginVertical();
-            GUILayout.Label(" ", noWrap);
+            GUILayout.Label(" ", Styles.noWrap);
             foreach (CarGroup group in groups)
             {
                 if (group.startIndex + 1 == group.endIndex)
-                    GUILayout.Label(group.endIndex.ToString(), noWrap);
+                    GUILayout.Label(group.endIndex.ToString(), Styles.noWrap);
                 else
-                    GUILayout.Label($"{group.startIndex + 1}{EnDash}{group.endIndex}", noWrap);
+                    GUILayout.Label($"{group.startIndex + 1}{EnDash}{group.endIndex}", Styles.noWrap);
             }
             GUILayout.EndVertical();
 
             GUILayout.BeginVertical();
-            GUILayout.Label("ID", noWrap);
+            GUILayout.Label("ID", Styles.noWrap);
             foreach (CarGroup group in groups)
             {
                 GUI.contentColor = GetCarColor(group.cars[0]);
-                GUILayout.Label(group.cars[0].ID, noWrap);
+                GUILayout.Label(group.cars[0].ID, Styles.noWrap);
             }
             GUI.contentColor = Color.white;
             GUILayout.EndVertical();
@@ -463,13 +460,13 @@ namespace DvMod.HeadsUpDisplay
 
             GUILayout.Space(ColumnSpacing);
             GUILayout.BeginVertical();
-            GUILayout.Label("Derail", noWrap);
+            GUILayout.Label("Derail", Styles.noWrap);
             foreach (CarGroup group in groups)
             {
                 var buildup = group.maxStress;
                 var buildupPct = buildup / derailThreshold * 100;
                 GUI.contentColor = Color.HSVToRGB(Mathf.Lerp(1f / 3f, 0, (buildupPct - 30f) / 40f), 1f, 1f);
-                GUILayout.Label(buildupPct.ToString("F0"), rightAlign);
+                GUILayout.Label(buildupPct.ToString("F0"), Styles.rightAlign);
             }
             GUI.contentColor = Color.white;
             GUILayout.EndVertical();
@@ -479,19 +476,19 @@ namespace DvMod.HeadsUpDisplay
         {
             GUILayout.Space(ColumnSpacing);
             GUILayout.BeginVertical();
-            GUILayout.Label("Coupler", noWrap);
+            GUILayout.Label("Coupler", Styles.noWrap);
             foreach (CarGroup group in groups)
             {
                 var stress = group.maxCouplerStress;
                 if (stress == null)
                 {
-                    GUILayout.Label(" ", rightAlign);
+                    GUILayout.Label(" ", Styles.rightAlign);
                 }
                 else
                 {
                     float stressPct = (float)stress / 1e4f;
                     GUI.contentColor = Color.HSVToRGB(Mathf.Lerp(1f / 3f, 0, (stressPct - 30f) / 40f), 1f, 1f);
-                    GUILayout.Label(stressPct.ToString("F0"), rightAlign);
+                    GUILayout.Label(stressPct.ToString("F0"), Styles.rightAlign);
                 }
             }
             GUI.contentColor = Color.white;
@@ -515,11 +512,11 @@ namespace DvMod.HeadsUpDisplay
         {
             GUILayout.Space(ColumnSpacing);
             GUILayout.BeginVertical();
-            GUILayout.Label("Job", noWrap);
+            GUILayout.Label("Job", Styles.noWrap);
             foreach (CarGroup group in groups)
             {
                 GUI.contentColor = JobColor(group.job);
-                GUILayout.Label(group.job?.ID ?? " ", noWrap);
+                GUILayout.Label(group.job?.ID ?? " ", Styles.noWrap);
             }
             GUI.contentColor = Color.white;
             GUILayout.EndVertical();
@@ -529,7 +526,7 @@ namespace DvMod.HeadsUpDisplay
         {
             GUILayout.Space(ColumnSpacing);
             GUILayout.BeginVertical();
-            GUILayout.Label("Destination", noWrap);
+            GUILayout.Label("Destination", Styles.noWrap);
             foreach (var group in groups)
             {
                 var destination = group.nextDestination;
@@ -539,7 +536,7 @@ namespace DvMod.HeadsUpDisplay
                     : Color.white;
                 GUILayout.Label(
                     group.nextDestination?.ID?.FullDisplayID ?? " ",
-                    noWrap);
+                    Styles.noWrap);
             }
             GUI.contentColor = Color.white;
             GUILayout.EndVertical();
@@ -560,7 +557,7 @@ namespace DvMod.HeadsUpDisplay
 
         private void DrawColumn(IEnumerable<CarGroup> groups, string label, Func<CarGroup, string> renderer, GUIStyle? style = null)
         {
-            style ??= noWrap;
+            style ??= Styles.noWrap;
             GUILayout.Space(ColumnSpacing);
             GUILayout.BeginVertical();
             GUILayout.Label(label, style);
@@ -579,33 +576,8 @@ namespace DvMod.HeadsUpDisplay
                 DrawColumn(groups, "Mode", g => string.Join("", g.brakeModes));
                 DrawColumn(groups, "Cyl", g => g.maxBrakeCylinderPressure.ToString("F2"));
             }
-            DrawColumn(groups, "Force", g => g.maxBrakeFactor.ToString("P0"), rightAlign);
+            DrawColumn(groups, "Force", g => g.maxBrakeFactor.ToString("P0"), Styles.rightAlign);
         }
-
-        /*
-        private string DumpTask(Task task, int indent = 0)
-        {
-            var data = task.GetTaskData();
-            var indentStr = new string(' ', indent * 2);
-            switch (data.type)
-            {
-                case TaskType.Transport:
-                case TaskType.Warehouse:
-                    var carsStr = string.Join(",", data.cars.Select(car => car.ID));
-                    var destStr = data.destinationTrack.ID.FullDisplayID;
-                    return $"{indentStr}{data.warehouseTaskType}:{carsStr}:{destStr}:{data.state}";
-                case TaskType.Parallel:
-                case TaskType.Sequential:
-                    return $"{indentStr}{data.type}\n{string.Join("\n", data.nestedTasks.Select(t => DumpTask(t, indent+1)))}";
-            }
-            return "";
-        }
-
-        private string DumpJob(Job job)
-        {
-            return string.Join("\n", job.tasks.Select(DumpTask));
-        }
-        */
 
         private string GetJunctionEventDescription(JunctionEvent e)
         {
@@ -670,7 +642,7 @@ namespace DvMod.HeadsUpDisplay
 
             GUILayout.BeginVertical(GUILayout.MaxWidth(50));
             foreach ((double span, string desc) in eventDescriptions)
-                GUILayout.Label($"{Math.Round(span / 10) * 10:F0} m", rightAlign);
+                GUILayout.Label($"{Math.Round(span / 10) * 10:F0} m", Styles.rightAlign);
             for (int i = eventDescriptions.Count; i < trackInfoSettings.maxEventCount; i++)
                 GUILayout.Label(" ");
             GUILayout.EndVertical();
@@ -679,7 +651,7 @@ namespace DvMod.HeadsUpDisplay
 
             GUILayout.BeginVertical();
             foreach ((double span, string desc) in eventDescriptions)
-                GUILayout.Label(desc, richText);
+                GUILayout.Label(desc, Styles.richText);
             for (int i = eventDescriptions.Count; i < trackInfoSettings.maxEventCount; i++)
                 GUILayout.Label(" ");
             GUILayout.EndVertical();
