@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using DV.Logic.Job;
@@ -218,6 +217,8 @@ namespace DvMod.HeadsUpDisplay
         }
 
         private const char EnDash = '\u2013';
+        private static float lastUpdateTime = 0f;
+        private static CarGroup[]? groups;
 
         public static void DrawCarList(Trainset trainset)
         {
@@ -225,7 +226,12 @@ namespace DvMod.HeadsUpDisplay
             IEnumerable<TrainCar> cars = trainset.cars.AsReadOnly();
             if (cars.Last() == PlayerManager.LastLoco || (!cars.First().IsLoco && cars.Last().IsLoco))
                 cars = cars.Reverse();
-            var groups = GetCarGroups(cars, !trainInfoSettings.groupCarsByJob);
+
+            if (groups == null || Time.time - lastUpdateTime >= Main.settings.trainInfoSettings.updatePeriod)
+            {
+                groups = GetCarGroups(cars, !trainInfoSettings.groupCarsByJob).ToArray();
+                lastUpdateTime = Time.time;
+            }
 
             GUILayout.BeginHorizontal();
             GUILayout.BeginVertical();

@@ -52,6 +52,7 @@ namespace DvMod.HeadsUpDisplay
             [Draw("Enable")] public bool enabled = true;
             [Draw("Length & mass")] public bool showTrainInfo = true;
             [Draw("Car list")] public bool showCarList = true;
+            [Draw("Update period", Min = 0f, VisibleOn = "showCarList|true")] public float updatePeriod = 0.25f;
             [Draw("Group by job", VisibleOn = "showCarList|true")] public bool groupCarsByJob = true;
             [Draw("Stress", VisibleOn = "showCarList|true")] public bool showCarStress = true;
             [Draw("Job ID", VisibleOn = "showCarList|true")] public bool showCarJobs = true;
