@@ -118,8 +118,9 @@ namespace DvMod.HeadsUpDisplay
             // Main.DebugLog($"Starting BFS at {startBranch.track.logicTrack.ID}");
             var visited = new HashSet<RailTrack>();
             var queue = new Queue<Junction.Branch>(GetNextBranches(startBranch));
-            while (queue.TryDequeue(out var branch))
+            while (queue.Count > 0)
             {
+                var branch = queue.Dequeue();
                 // Main.DebugLog($"Examining {branch}, track={branch.track}, logicTrack={branch.track.logicTrack}, ID={branch.track.logicTrack.ID}");
                 trackID = branch.track.logicTrack.ID;
                 if (!trackID.IsGeneric())

@@ -13,7 +13,7 @@ namespace DvMod.HeadsUpDisplay
 
             static public DrivingInfoSettings Create()
             {
-                return new DrivingInfoSettings() { disabledProviders = Registry.providers.Keys.ToHashSet() };
+                return new DrivingInfoSettings() { disabledProviders = new HashSet<string>(Registry.providers.Keys) };
             }
 
             public void Draw()
