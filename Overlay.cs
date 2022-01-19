@@ -80,12 +80,15 @@ namespace DvMod.HeadsUpDisplay
 
             if (prevRect == new Rect())
                 prevRect.position = Main.settings.hudPosition;
-            prevRect = GUILayout.Window(
+            var newRect = GUILayout.Window(
                 GUIUtility.GetControlID(FocusType.Passive),
                 prevRect,
                 DrawDrivingInfoWindow,
                 "",
                 Styles.noChrome);
+            if (newRect.min == prevRect.min)
+                newRect.height = 0;
+            prevRect = newRect;
             Main.settings.hudPosition = prevRect.position;
         }
 
