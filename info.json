@@ -3,6 +3,7 @@
   "DisplayName": "Heads-up Display",
   "Author": "Zeibach",
   "Version": "0.6.0",
+  "LoadAfter": ["DVCustomCarLoader"],
   "AssemblyName": "HeadsUpDisplay.dll",
   "EntryMethod": "DvMod.HeadsUpDisplay.Main.Load",
   "HomePage": "https://www.nexusmods.com/derailvalley/mods/206",

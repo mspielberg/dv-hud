@@ -1,8 +1,10 @@
 using DV;
 using HarmonyLib;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
-using UnityEngine;
+using UnityModManagerNet;
 
 namespace DvMod.HeadsUpDisplay
 {
@@ -47,6 +49,22 @@ namespace DvMod.HeadsUpDisplay
                 yield return AccessTools.Method(typeof(LocoControllerDiesel), nameof(LocoControllerBase.GetTractionForce));
                 yield return AccessTools.Method(typeof(LocoControllerShunter), nameof(LocoControllerBase.GetTractionForce));
                 yield return AccessTools.Method(typeof(LocoControllerSteam), nameof(LocoControllerBase.GetTractionForce));
+                if (UnityModManager.FindMod("DVCustomCarLoader")?.Assembly is Assembly assembly && assembly != null)
+                {
+                    var typeNames = new string[]
+                    {
+                        "DieselElectric.CustomLocoControllerDiesel",
+                        "Steam.CustomLocoControllerSteam",
+                    };
+                    var methods = typeNames
+                        .Select(n => assembly.GetType($"DVCustomCarLoader.LocoComponents.{n}"))
+                        .OfType<Type>()
+                        .Where(typeof(LocoControllerBase).IsAssignableFrom)
+                        .Select(t => t.GetMethod("GetTractionForce"))
+                        .OfType<MethodBase>();
+                    foreach (var method in methods)
+                        yield return method;
+                }
             }
         }
 
