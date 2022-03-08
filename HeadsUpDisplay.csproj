@@ -2,7 +2,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>DvMod.HeadsUpDisplay</RootNamespace>
-    <InformationalVersion>0.6.0</InformationalVersion>
+    <InformationalVersion>0.6.1</InformationalVersion>
     <LangVersion>8.0</LangVersion>
     <Nullable>enable</Nullable>
   </PropertyGroup>
