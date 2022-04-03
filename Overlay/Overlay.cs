@@ -137,11 +137,18 @@ namespace DvMod.HeadsUpDisplay
             if (!PlayerManager.Car)
                 return;
 
+            static (string, string)? GetFormattedFromProvider(IDataProvider dp, TrainCar car)
+            {
+                if (dp.TryGetFormatted(car, out var s))
+                    return (dp.Label, s);
+                return null;
+            }
+
             var labelsAndValues = Registry.providers.Values
-                .Where(p => !p.Hidden)
+                .Where(dp => !dp.Hidden)
                 .Where(Main.settings.IsEnabled)
-                .Select(dp => (dp.Label, dp.GetFormatted(PlayerManager.Car)))
-                .Where(p => p.Item2 != null);
+                .Select(dp => GetFormattedFromProvider(dp, PlayerManager.Car))
+                .OfType<(string, string)>();
 
             GUILayout.BeginHorizontal("box", GUILayout.ExpandHeight(true));
             GUILayout.BeginVertical();

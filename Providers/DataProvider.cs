@@ -7,18 +7,17 @@ namespace DvMod.HeadsUpDisplay
         public string Label { get; }
         public IComparable Order { get; }
         public bool Hidden { get; }
-        public abstract string? GetFormatted(TrainCar car);
+        public abstract bool TryGetFormatted(TrainCar car, out string s);
     }
 
     public abstract class DataProvider<T> : IDataProvider
-    where T : struct
     {
         public string Label { get; }
         public IComparable Order { get; }
         public bool Hidden { get; }
 
-        public abstract string? GetFormatted(TrainCar car);
-        public abstract T? GetValue(TrainCar car);
+        public abstract bool TryGetFormatted(TrainCar car, out string s);
+        public abstract bool TryGetValue(TrainCar car, out T v);
 
         protected DataProvider(string label, IComparable? order = null, bool hidden = false)
         {

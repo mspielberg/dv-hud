@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.0" PrivateAssets="all" />
+    <PackageReference Include="QuantityTypes" Version="4.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -27,9 +28,5 @@
     <Reference Include="UnityEngine.TextRenderingModule" />
     <Reference Include="UnityModManager" />
     <Reference Include="net.smkd.vector3d" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\dotnet-quantities\MyUnits\MyUnits.csproj" />
   </ItemGroup>
 </Project>

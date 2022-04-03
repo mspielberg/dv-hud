@@ -11,7 +11,7 @@ namespace DvMod.HeadsUpDisplay
                 f((T)value);
         }
 
-        public static U? Map<T, U>(this T? value, Func<T, U> f)
+        public static U? MapS<T, U>(this T? value, Func<T, U> f)
             where T : struct
             where U : class =>
             (value == null) ? null : f((T)value);
@@ -19,7 +19,7 @@ namespace DvMod.HeadsUpDisplay
         public static U? Map<T, U>(this T? value, Func<T, U> f)
             where T : class
             where U : struct =>
-            (value == null) ? null : (U?)f(value);
+            (value == null) ? default : f(value);
 
         public static U? FlatMap<T, U>(this T? value, Func<T, U?> f)
             where T : class

@@ -1,3 +1,4 @@
+using QuantityTypes;
 using UnityEngine;
 
 namespace DvMod.HeadsUpDisplay
@@ -34,6 +35,11 @@ namespace DvMod.HeadsUpDisplay
                 "Brake pipe",
                 car => car.brakeSystem?.brakePipePressure,
                 f => $"{f:F2} bar"));
+
+            Registry.Register(new QuantityQueryDataProvider<Velocity>(
+                "SpeedQ",
+                car => car.GetForwardSpeed() * Velocity.MetrePerSecond));
+            UnitProvider.Default.TrySetDisplayUnit<Velocity>("mph");
         }
     }
 }

@@ -67,45 +67,68 @@ namespace DvMod.HeadsUpDisplay
         {
             if (index == 0)
                 return null;
-            if (!(Registry.GetProvider("Front coupler") is DataProvider<float> frontCouplerRegistry))
+            if (!(Registry.GetProvider("Front coupler") is DataProvider<float> frontCouplerProvider))
                 return null;
-            if (!(Registry.GetProvider("Rear coupler") is DataProvider<float> rearCouplerRegistry))
+            if (!(Registry.GetProvider("Rear coupler") is DataProvider<float> rearCouplerProvider))
                 return null;
 
             var frontCar = cars.ElementAt(index - 1);
             var rearCar = cars.ElementAt(index);
-            static bool? IsFrontCoupler(TrainCar car, TrainCar attached) =>
-                car.frontCoupler.springyCJ && car.frontCoupler.coupledTo.train == attached ? (bool?)true
-                : car.rearCoupler.springyCJ && car.rearCoupler.coupledTo.train == attached ? (bool?)false
-                : null;
-            var frontCarCoupler = IsFrontCoupler(frontCar, rearCar);
-            var rearCarCoupler = IsFrontCoupler(rearCar, frontCar);
-            // Main.DebugLog($"car={rearCar.ID}: frontCarCoupler=({frontCarCoupler.HasValue},{frontCarCoupler}),rearCarCoupler=({rearCarCoupler.HasValue},{rearCarCoupler})");
-            if (frontCarCoupler != null)
-                return ((bool)frontCarCoupler ? frontCouplerRegistry : rearCouplerRegistry).GetValue(frontCar);
-            if (rearCarCoupler != null)
-                return ((bool)rearCarCoupler ? frontCouplerRegistry : rearCouplerRegistry).GetValue(rearCar);
+            static bool IsFrontCoupledTo(TrainCar car, TrainCar attached) =>
+                car.frontCoupler.springyCJ && car.frontCoupler.coupledTo.train == attached;
+            static bool IsRearCoupledTo(TrainCar car, TrainCar attached) =>
+                car.rearCoupler.springyCJ && car.rearCoupler?.coupledTo?.train == attached;
+
+            (TrainCar car, bool isFront) FindCoupler()
+            {
+                if (IsFrontCoupledTo(frontCar, rearCar))
+                    return (frontCar, true);
+                else if (IsRearCoupledTo(frontCar, rearCar))
+                    return (frontCar, false);
+                else if (IsFrontCoupledTo(rearCar, frontCar))
+                    return (rearCar, true);
+                else if (IsRearCoupledTo(rearCar, frontCar))
+                    return (rearCar, false);
+                throw new System.InvalidOperationException("Could not find coupler link between cars");
+            }
+
+            var (carWithCoupler, isFront) = FindCoupler();
+            var provider = isFront ? frontCouplerProvider : rearCouplerProvider;
+            if (provider.TryGetValue(carWithCoupler, out var stress))
+                return stress;
             return null;
         }
 
-        private static float GetAuxReservoirPressure(TrainCar car) =>
-            car.IsLoco
-            ? car.brakeSystem.mainReservoirPressure
-            : (Registry.GetProvider("Aux reservoir") as DataProvider<float>)
-                .FlatMap(p => p.GetValue(car))
-                ?? default;
+        private static float GetAuxReservoirPressure(TrainCar car)
+        {
+            if (car.IsLoco)
+                return car.brakeSystem.mainReservoirPressure;
+            if (Registry.GetProvider("Aux reservoir") is DataProvider<float> provider
+                && provider.TryGetValue(car, out var v))
+            {
+                return v;
+            }
+            return default;
+        }
 
-        private static float GetBrakeCylinderPressure(TrainCar car) =>
-            (Registry.GetProvider("Brake cylinder") as DataProvider<float>)
-                .FlatMap(p => p.GetValue(car))
-                ?? default;
+        private static float GetBrakeCylinderPressure(TrainCar car)
+        {
+            if (Registry.GetProvider("Brake cylinder") is DataProvider<float> provider
+                && provider.TryGetValue(car, out var v))
+            {
+                return v;
+            }
+            return default;
+        }
 
         private static char GetTripleValveState(TrainCar car)
         {
-            var provider = Registry.GetProvider("Triple valve mode") as DataProvider<float>;
-            var value = provider.FlatMap(p => p.GetValue(car));
-            var c = value.FlatMap(v => (char?)v);
-            return c ?? default;
+            if (Registry.GetProvider("Triple valve mode") is DataProvider<float> provider
+                && provider.TryGetValue(car, out var v))
+            {
+                return (char)v;
+            }
+            return default;
         }
 
         private static IEnumerable<CarGroup> GetCarGroups(IEnumerable<TrainCar> cars, bool individual)

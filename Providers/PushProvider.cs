@@ -1,50 +1,73 @@
+using QuantityTypes;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace DvMod.HeadsUpDisplay
 {
-    public class PushProvider<T> : DataProvider<T>
-    where T : struct
+    public class FloatPushProvider : DataProvider<float>
     {
-        private readonly Func<T, string> formatter;
+        private readonly Dictionary<string, float> values = new Dictionary<string, float>();
 
-        private readonly Dictionary<string, T> values = new Dictionary<string, T>();
+        private readonly Func<float, string> formatter;
 
-        public PushProvider(string label, Func<T, string> formatter, IComparable? order = null, bool hidden = false)
+        public FloatPushProvider(string label, Func<float, string> formatter, IComparable? order = null, bool hidden = false)
         : base(label, order, hidden)
         {
             this.formatter = formatter;
         }
 
-        public override string ToString()
+        public void SetValue(TrainCar car, float value)
         {
-            return $"PushProvider {Label}: {values.Aggregate("", (a,b) => a + b.ToString())}";
+            values[car.ID] = value;
         }
 
-        public override T? GetValue(TrainCar car)
+        public override bool TryGetFormatted(TrainCar car, out string s)
         {
-            return values.TryGetValue(car.ID, out var value) ? value : default;
+            if (TryGetValue(car, out var v))
+            {
+                s = formatter(v);
+                return true;
+            }
+            s = "";
+            return false;
         }
 
-        public void SetValue(TrainCar car, T value)
+        public override bool TryGetValue(TrainCar car, out float v)
         {
-            // Main.DebugLog($"Setting value {value} for {car.ID} into {this}");
-            values.Remove(car.ID);
-            values.Add(car.ID, value);
-        }
-
-        public override string? GetFormatted(TrainCar car)
-        {
-            return GetValue(car).Map(formatter);
+            return values.TryGetValue(car.ID, out v);
         }
     }
 
-    public class FloatPushProvider : PushProvider<float>
+    public class QuantityPushProvider<Q> : DataProvider<Q>
+    where Q : struct, IQuantity
     {
-        public FloatPushProvider(string label, Func<float, string> formatter, IComparable? order = null, bool hidden = false)
-        : base(label, formatter, order, hidden)
+        private readonly Dictionary<string, Q> values = new Dictionary<string, Q>();
+
+        public QuantityPushProvider(string label, IComparable? order = null, bool hidden = false)
+        : base(label, order, hidden)
         {
+        }
+
+        public void SetValue(TrainCar car, Q value)
+        {
+            values[car.ID] = value;
+        }
+
+        public override bool TryGetFormatted(TrainCar car, out string s)
+        {
+            if (TryGetValue(car, out var v))
+            {
+                var unit = UnitProvider.Default.GetDisplayUnit(typeof(Q), out var symbol);
+                s = $"{v.ConvertTo(unit):F1} {symbol}";
+                return true;
+            }
+            s = "";
+            return false;
+        }
+
+        public override bool TryGetValue(TrainCar car, out Q v)
+        {
+            return values.TryGetValue(car.ID, out v);
         }
     }
 }

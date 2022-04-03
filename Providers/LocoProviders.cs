@@ -1,5 +1,6 @@
 using DV;
 using HarmonyLib;
+using QuantityTypes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,14 +11,18 @@ namespace DvMod.HeadsUpDisplay
 {
     internal static class LocoProviders
     {
-        public static FloatPushProvider tractiveEffortProvider = new FloatPushProvider(
-            "Tractive effort", f => $"{f / 1000:F0} kN");
+        // public static FloatPushProvider tractiveEffortProvider = new FloatPushProvider(
+            // "Tractive effort", f => $"{f / 1000:F0} kN");
+        public static QuantityPushProvider<Force> tractiveEffortProvider =
+            new QuantityPushProvider<Force>("Tractive effort");
 
         public static FloatPushProvider adhesionProvider = new FloatPushProvider(
             "Adhesion", f => $"{f / 1000:F0} kN");
 
-        public static FloatPushProvider indicatedPowerProvider = new FloatPushProvider(
-            "Power", f => $"{f / 1000:F0} kW");
+        // public static FloatPushProvider indicatedPowerProvider = new FloatPushProvider(
+        //     "Power", f => $"{f / 1000:F0} kW");
+        public static QuantityPushProvider<Power> indicatedPowerProvider =
+            new QuantityPushProvider<Power>("Power");
 
         public static void Register()
         {
@@ -39,8 +44,8 @@ namespace DvMod.HeadsUpDisplay
             {
                 if (!AppUtil.IsPaused)
                 {
-                    tractiveEffortProvider.SetValue(__instance.train, __result);
-                    indicatedPowerProvider.SetValue(__instance.train, __result * __instance.GetSpeedKmH() / 3.6f);
+                    tractiveEffortProvider.SetValue(__instance.train, __result * Force.Newton);
+                    indicatedPowerProvider.SetValue(__instance.train, (__result * Force.Newton) * (__instance.GetSpeedKmH() * Velocity.KilometrePerHour));
                 }
             }
 
