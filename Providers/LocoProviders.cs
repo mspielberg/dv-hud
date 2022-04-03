@@ -10,13 +10,13 @@ namespace DvMod.HeadsUpDisplay
 {
     internal static class LocoProviders
     {
-        public static PushProvider tractiveEffortProvider = new PushProvider(
+        public static FloatPushProvider tractiveEffortProvider = new FloatPushProvider(
             "Tractive effort", f => $"{f / 1000:F0} kN");
 
-        public static PushProvider adhesionProvider = new PushProvider(
+        public static FloatPushProvider adhesionProvider = new FloatPushProvider(
             "Adhesion", f => $"{f / 1000:F0} kN");
 
-        public static PushProvider indicatedPowerProvider = new PushProvider(
+        public static FloatPushProvider indicatedPowerProvider = new FloatPushProvider(
             "Power", f => $"{f / 1000:F0} kW");
 
         public static void Register()
@@ -24,7 +24,7 @@ namespace DvMod.HeadsUpDisplay
             Registry.Register(tractiveEffortProvider);
             Registry.Register(adhesionProvider);
             Registry.Register(indicatedPowerProvider);
-            Registry.Register(new QueryDataProvider(
+            Registry.Register(new FloatQueryDataProvider(
                 "Slip",
                 car => car.GetComponent<DrivingForce>()?.wheelslip,
                 f => $"{f:P1}"));
@@ -84,7 +84,7 @@ namespace DvMod.HeadsUpDisplay
 
     internal static class SteamLocoProviders
     {
-        public static PushProvider cutoffProvider = new PushProvider("Cutoff", f => $"{f:P0}");
+        public static FloatPushProvider cutoffProvider = new FloatPushProvider("Cutoff", f => $"{f:P0}");
 
         public static void Register()
         {

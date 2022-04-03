@@ -67,11 +67,9 @@ namespace DvMod.HeadsUpDisplay
         {
             if (index == 0)
                 return null;
-            var frontCouplerRegistry = Registry.GetProvider("Front coupler");
-            if (frontCouplerRegistry == null)
+            if (!(Registry.GetProvider("Front coupler") is DataProvider<float> frontCouplerRegistry))
                 return null;
-            var rearCouplerRegistry = Registry.GetProvider("Rear coupler");
-            if (rearCouplerRegistry == null)
+            if (!(Registry.GetProvider("Rear coupler") is DataProvider<float> rearCouplerRegistry))
                 return null;
 
             var frontCar = cars.ElementAt(index - 1);
@@ -93,18 +91,18 @@ namespace DvMod.HeadsUpDisplay
         private static float GetAuxReservoirPressure(TrainCar car) =>
             car.IsLoco
             ? car.brakeSystem.mainReservoirPressure
-            : Registry.GetProvider("Aux reservoir")
+            : (Registry.GetProvider("Aux reservoir") as DataProvider<float>)
                 .FlatMap(p => p.GetValue(car))
                 ?? default;
 
         private static float GetBrakeCylinderPressure(TrainCar car) =>
-            Registry.GetProvider("Brake cylinder")
+            (Registry.GetProvider("Brake cylinder") as DataProvider<float>)
                 .FlatMap(p => p.GetValue(car))
                 ?? default;
 
         private static char GetTripleValveState(TrainCar car)
         {
-            var provider = Registry.GetProvider("Triple valve mode");
+            var provider = Registry.GetProvider("Triple valve mode") as DataProvider<float>;
             var value = provider.FlatMap(p => p.GetValue(car));
             var c = value.FlatMap(v => (char?)v);
             return c ?? default;

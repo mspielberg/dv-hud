@@ -9,15 +9,15 @@ namespace DvMod.HeadsUpDisplay
 
     static public class Registry
     {
-        public static readonly Dictionary<string, DataProvider> providers = new Dictionary<string, DataProvider>();
+        public static readonly Dictionary<string, IDataProvider> providers = new Dictionary<string, IDataProvider>();
 
-        public static void Register(DataProvider dp)
+        public static void Register(IDataProvider dp)
         {
             providers[dp.Label] = dp;
             Main.DebugLog($"Registered data provider for {dp.Label}");
         }
 
-        public static DataProvider? GetProvider(string label)
+        public static IDataProvider? GetProvider(string label)
         {
             providers.TryGetValue(label, out var dp);
             return dp;
@@ -30,12 +30,12 @@ namespace DvMod.HeadsUpDisplay
 
         public static void RegisterPull(string label, Provider provider, Formatter formatter, IComparable order, bool hidden)
         {
-            Register(new QueryDataProvider(label, provider, formatter, order, hidden));
+            Register(new FloatQueryDataProvider(label, provider, formatter, order, hidden));
         }
 
         public static Pusher RegisterPush(string label, Formatter formatter, IComparable order)
         {
-            var pp = new PushProvider(label, formatter, order);
+            var pp = new FloatPushProvider(label, formatter, order);
             Register(pp);
             return pp.SetValue;
         }
@@ -44,7 +44,7 @@ namespace DvMod.HeadsUpDisplay
         {
             return GetProvider(label) switch
             {
-                PushProvider pp => pp.SetValue,
+                FloatPushProvider pp => pp.SetValue,
                 _ => null
             };
         }

@@ -2,54 +2,29 @@ using System;
 
 namespace DvMod.HeadsUpDisplay
 {
-    using Provider = Func<TrainCar, float?>;
-    using Formatter = Func<float, string>;
-
-    public abstract class DataProvider
+    public interface IDataProvider
     {
         public string Label { get; }
         public IComparable Order { get; }
-        private readonly Formatter formatter;
         public bool Hidden { get; }
-
-        public abstract float? GetValue(TrainCar car);
-
-        public string? GetFormatted(TrainCar car)
-        {
-            return GetValue(car) switch
-            {
-                float v => formatter(v),
-                _ => null,
-            };
-        }
-
-        protected DataProvider(string label, IComparable? order, Formatter formatter, bool hidden)
-        {
-            Label = label;
-            Order = order ?? label;
-            this.formatter = formatter;
-            this.Hidden = hidden;
-        }
+        public abstract string? GetFormatted(TrainCar car);
     }
 
-    public class QueryDataProvider : DataProvider
+    public abstract class DataProvider<T> : IDataProvider
+    where T : struct
     {
-        private readonly Provider provider;
+        public string Label { get; }
+        public IComparable Order { get; }
+        public bool Hidden { get; }
 
-        public QueryDataProvider(string label, Provider provider, Formatter formatter, IComparable? order = null, bool hidden = false)
-        : base(label, order, formatter, hidden)
-        {
-            this.provider = provider;
-        }
+        public abstract string? GetFormatted(TrainCar car);
+        public abstract T? GetValue(TrainCar car);
 
-        public override float? GetValue(TrainCar car)
+        protected DataProvider(string label, IComparable? order = null, bool hidden = false)
         {
-            return provider(car);
-        }
-
-        public override string ToString()
-        {
-            return $"QueryProvider {Label}";
+            this.Label = label;
+            this.Order = order ?? label;
+            this.Hidden = hidden;
         }
     }
 

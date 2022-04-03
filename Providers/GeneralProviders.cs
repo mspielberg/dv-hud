@@ -11,17 +11,17 @@ namespace DvMod.HeadsUpDisplay
 
         public static void Register()
         {
-            Registry.Register(new QueryDataProvider(
+            Registry.Register(new FloatQueryDataProvider(
                 "Altitude",
                 car => car.transform.position.y - 110f,
                 f => $"{f:F1} m"));
 
-            Registry.Register(new QueryDataProvider(
+            Registry.Register(new FloatQueryDataProvider(
                 "Speed",
                 car => Mathf.Abs(car.GetForwardSpeed()) * 3.6f,
                 f => $"{f:F1} km/h"));
 
-            Registry.Register(new QueryDataProvider(
+            Registry.Register(new FloatQueryDataProvider(
                 "Grade",
                 car => {
                     var inclination = car.transform.localEulerAngles.x;
@@ -30,7 +30,7 @@ namespace DvMod.HeadsUpDisplay
                 },
                 f => f.ToString(GradeFormat)));
 
-            Registry.Register(new QueryDataProvider(
+            Registry.Register(new FloatQueryDataProvider(
                 "Brake pipe",
                 car => car.brakeSystem?.brakePipePressure,
                 f => $"{f:F2} bar"));

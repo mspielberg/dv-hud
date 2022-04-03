@@ -28,4 +28,8 @@
     <Reference Include="UnityModManager" />
     <Reference Include="net.smkd.vector3d" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\dotnet-quantities\MyUnits\MyUnits.csproj" />
+  </ItemGroup>
 </Project>

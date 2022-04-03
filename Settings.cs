@@ -37,7 +37,7 @@ namespace DvMod.HeadsUpDisplay
                 GUILayout.EndVertical();
             }
 
-            public bool IsEnabled(DataProvider dp) => !disabledProviders.Contains(dp.Label);
+            public bool IsEnabled(IDataProvider dp) => !disabledProviders.Contains(dp.Label);
         }
 
         public class TrackInfoSettings
@@ -78,7 +78,7 @@ namespace DvMod.HeadsUpDisplay
 
         public Vector2 hudPosition;
 
-        public bool IsEnabled(DataProvider dp) => drivingInfoSettings.IsEnabled(dp);
+        public bool IsEnabled(IDataProvider dp) => drivingInfoSettings.IsEnabled(dp);
 
         override public void Save(UnityModManager.ModEntry entry) => Save<Settings>(this, entry);
 
