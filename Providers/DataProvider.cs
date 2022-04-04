@@ -1,4 +1,5 @@
 using System;
+using QuantitiesNet;
 
 namespace DvMod.HeadsUpDisplay
 {
@@ -25,6 +26,11 @@ namespace DvMod.HeadsUpDisplay
             this.Order = order ?? label;
             this.Hidden = hidden;
         }
+    }
+
+    public interface IQuantityProvider : IDimension
+    {
+        public string QuantityName { get; }
     }
 
     public static class DataProviders

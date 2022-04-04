@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using QuantitiesNet;
 using UnityEngine;
 using UnityModManagerNet;
 
@@ -71,6 +72,9 @@ namespace DvMod.HeadsUpDisplay
         [Draw("Train info", Collapsible = true, Box = true)]
         public TrainInfoSettings trainInfoSettings = new TrainInfoSettings();
 
+        [Draw("Unit settings", Collapsible = true, Box = true)]
+        public UnitSettings unitSettings = new UnitSettings();
+
         [Draw("Enable logging")] public bool enableLogging;
         [Draw("Lock position")] public bool lockPosition;
 
@@ -91,10 +95,50 @@ namespace DvMod.HeadsUpDisplay
             if (showDrivingInfo)
                 drivingInfoSettings.Draw();
             this.Draw(Main.mod);
+            unitSettings.Draw();
         }
 
         public void OnChange()
         {
+        }
+    }
+
+    public class UnitSettings : UnityModManager.ModSettings
+    {
+        public readonly Dictionary<string, string> preferredUnits = new Dictionary<string, string>();
+
+        public Unit? GetUnit<D>() where D : IDimension, new()
+        {
+            if (preferredUnits.TryGetValue(nameof(D), out var symbol)
+                && UnitRegistry.Default.TryGetUnits(Dimension.ForType<D>(), out var unit))
+            {
+                return unit.FirstOrDefault(u => u.Symbol == symbol);
+            }
+            return null;
+        }
+
+        public void Draw()
+        {
+            foreach (var provider in Registry.providers.Values.OfType<IQuantityProvider>())
+            {
+                var dimension = provider.Dimension;
+                var quantityName = provider.QuantityName;
+                var haveSymbol = preferredUnits.TryGetValue(quantityName, out var currentSymbol);
+                if (UnitRegistry.Default.TryGetUnits(dimension, out var units))
+                {
+                    var unitList = units;
+                    var selectedIndex = !haveSymbol ? 0 :
+                        unitList
+                        .Select((unit, index) => (unit, index))
+                        .FirstOrDefault(p => p.unit.Symbol == currentSymbol).index;
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label(quantityName);
+                    var changed = UnityModManager.UI.ToggleGroup(ref selectedIndex, unitList.Select(u => u.Symbol).ToArray());
+                    if (changed)
+                        preferredUnits[quantityName] = unitList[selectedIndex].Symbol;
+                    GUILayout.EndHorizontal();
+                }
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
-using QuantityTypes;
+using QuantitiesNet;
 using System;
+using System.Linq;
 
 namespace DvMod.HeadsUpDisplay
 {
@@ -39,34 +40,45 @@ namespace DvMod.HeadsUpDisplay
         }
     }
 
-    public class QuantityQueryDataProvider<Q> : DataProvider<Q>
-    where Q : struct, IQuantity
+    public class QuantityQueryDataProvider<D> : DataProvider<Quantity<D>>, IQuantityProvider
+    where D : IDimension, new()
     {
-        private readonly Func<TrainCar, Q?> provider;
+        private readonly Func<TrainCar, Quantity<D>?> provider;
 
-        public QuantityQueryDataProvider(string label, Func<TrainCar, Q?> provider, IComparable? order = null, bool hidden = false) : base(label, order, hidden)
+        public QuantityQueryDataProvider(
+            string label,
+            Func<TrainCar, Quantity<D>?> provider,
+            IComparable? order = null,
+            bool hidden = false) : base(label, order, hidden)
         {
             this.provider = provider;
         }
+
+        public Dimension Dimension => Dimension.ForType<D>();
+        public string QuantityName => typeof(D).Name;
 
         public override bool TryGetFormatted(TrainCar car, out string s)
         {
             if (TryGetValue(car, out var v))
             {
-                var unit = UnitProvider.Default.GetDisplayUnit(typeof(Q), out var symbol);
-                s = $"{v.ConvertTo(unit):F1} {symbol}";
-                return true;
+                Main.DebugLog($"Got value {v}");
+                if (UnitRegistry.Default.TryGetPreferredUnit(v.dimension, out var unit))
+                {
+                    Main.DebugLog($"Got unit {unit}");
+                    s = $"{v.In(unit):F1} {unit.Symbol}";
+                    return true;
+                }
             }
             s = "";
             return false;
         }
 
-        public override bool TryGetValue(TrainCar car, out Q v)
+        public override bool TryGetValue(TrainCar car, out Quantity<D> v)
         {
             var result = provider(car);
             if (result != null)
             {
-                v = (Q)result;
+                v = result;
                 return true;
             }
             v = default;

@@ -9,7 +9,6 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.0" PrivateAssets="all" />
-    <PackageReference Include="QuantityTypes" Version="4.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -22,11 +21,16 @@
     <Reference Include="DV.BrakeSystem" />
     <Reference Include="DV.PointSet" />
     <Reference Include="DV.Utils" />
+    <Reference Include="UnityEngine" />
     <Reference Include="UnityEngine.CoreModule" />
     <Reference Include="UnityEngine.IMGUIModule" />
     <Reference Include="UnityEngine.PhysicsModule" />
     <Reference Include="UnityEngine.TextRenderingModule" />
     <Reference Include="UnityModManager" />
     <Reference Include="net.smkd.vector3d" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\dotnet-quantities\QuantitiesNet\QuantitiesNet.csproj" />
   </ItemGroup>
 </Project>

@@ -1,5 +1,8 @@
-using QuantityTypes;
+using QuantitiesNet;
+using QuantitiesNet.Dimensions;
+using static QuantitiesNet.Units;
 using UnityEngine;
+using System.Linq;
 
 namespace DvMod.HeadsUpDisplay
 {
@@ -38,8 +41,14 @@ namespace DvMod.HeadsUpDisplay
 
             Registry.Register(new QuantityQueryDataProvider<Velocity>(
                 "SpeedQ",
-                car => car.GetForwardSpeed() * Velocity.MetrePerSecond));
-            UnitProvider.Default.TrySetDisplayUnit<Velocity>("mph");
+                car => new QuantitiesNet.Quantities.Velocity(car.GetForwardSpeed(), Meter / Second)));
+            
+            if (UnitRegistry.Default.TryGetUnits<QuantitiesNet.Dimensions.Velocity>(out var velocityUnits))
+            {
+                var powerUnit = velocityUnits.First();
+                Main.DebugLog($"Setting default unit {powerUnit}");
+                UnitRegistry.Default.SetPreferredUnit(velocityUnits.First());
+            }
         }
     }
 }

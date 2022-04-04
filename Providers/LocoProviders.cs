@@ -1,6 +1,8 @@
 using DV;
 using HarmonyLib;
-using QuantityTypes;
+using QuantitiesNet;
+using QuantitiesNet.Quantities;
+using static QuantitiesNet.Units;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,16 +15,16 @@ namespace DvMod.HeadsUpDisplay
     {
         // public static FloatPushProvider tractiveEffortProvider = new FloatPushProvider(
             // "Tractive effort", f => $"{f / 1000:F0} kN");
-        public static QuantityPushProvider<Force> tractiveEffortProvider =
-            new QuantityPushProvider<Force>("Tractive effort");
+        public static QuantityPushProvider<QuantitiesNet.Dimensions.Force> tractiveEffortProvider =
+            new QuantityPushProvider<QuantitiesNet.Dimensions.Force>("Tractive effort");
 
         public static FloatPushProvider adhesionProvider = new FloatPushProvider(
             "Adhesion", f => $"{f / 1000:F0} kN");
 
         // public static FloatPushProvider indicatedPowerProvider = new FloatPushProvider(
         //     "Power", f => $"{f / 1000:F0} kW");
-        public static QuantityPushProvider<Power> indicatedPowerProvider =
-            new QuantityPushProvider<Power>("Power");
+        public static QuantityPushProvider<QuantitiesNet.Dimensions.Power> indicatedPowerProvider =
+            new QuantityPushProvider<QuantitiesNet.Dimensions.Power>("Power");
 
         public static void Register()
         {
@@ -35,6 +37,19 @@ namespace DvMod.HeadsUpDisplay
                 f => $"{f:P1}"));
 
             SteamLocoProviders.Register();
+
+            if (UnitRegistry.Default.TryGetUnits<QuantitiesNet.Dimensions.Force>(out var forceUnits))
+            {
+                var forceUnit = forceUnits.First();
+                Main.DebugLog($"Setting default unit {forceUnit}");
+                UnitRegistry.Default.SetPreferredUnit(forceUnits.First());
+            }
+            if (UnitRegistry.Default.TryGetUnits<QuantitiesNet.Dimensions.Power>(out var powerUnits))
+            {
+                var powerUnit = powerUnits.First();
+                Main.DebugLog($"Setting default unit {powerUnit}");
+                UnitRegistry.Default.SetPreferredUnit(powerUnits.First());
+            }
         }
 
         [HarmonyPatch]
@@ -44,8 +59,8 @@ namespace DvMod.HeadsUpDisplay
             {
                 if (!AppUtil.IsPaused)
                 {
-                    tractiveEffortProvider.SetValue(__instance.train, __result * Force.Newton);
-                    indicatedPowerProvider.SetValue(__instance.train, (__result * Force.Newton) * (__instance.GetSpeedKmH() * Velocity.KilometrePerHour));
+                    tractiveEffortProvider.SetValue(__instance.train, new Force(__result, Newton));
+                    indicatedPowerProvider.SetValue(__instance.train, new Force(__result, Newton) * new Velocity(__instance.GetSpeedKmH(), Kilometer / Hour));
                 }
             }
 

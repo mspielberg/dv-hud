@@ -1,6 +1,7 @@
-using QuantityTypes;
+using QuantitiesNet;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DvMod.HeadsUpDisplay
 {
@@ -38,34 +39,37 @@ namespace DvMod.HeadsUpDisplay
         }
     }
 
-    public class QuantityPushProvider<Q> : DataProvider<Q>
-    where Q : struct, IQuantity
+    public class QuantityPushProvider<D> : DataProvider<Quantity<D>>, IQuantityProvider
+    where D : IDimension, new()
     {
-        private readonly Dictionary<string, Q> values = new Dictionary<string, Q>();
+        private readonly Dictionary<string, Quantity<D>> values = new Dictionary<string, Quantity<D>>();
 
         public QuantityPushProvider(string label, IComparable? order = null, bool hidden = false)
         : base(label, order, hidden)
         {
         }
 
-        public void SetValue(TrainCar car, Q value)
+        public Dimension Dimension => Dimension.ForType<D>();
+        public string QuantityName => typeof(D).Name;
+
+        public void SetValue(TrainCar car, Quantity<D> value)
         {
             values[car.ID] = value;
         }
 
         public override bool TryGetFormatted(TrainCar car, out string s)
         {
-            if (TryGetValue(car, out var v))
+            if (TryGetValue(car, out var v) &&
+                UnitRegistry.Default.TryGetPreferredUnit(v.dimension, out var unit))
             {
-                var unit = UnitProvider.Default.GetDisplayUnit(typeof(Q), out var symbol);
-                s = $"{v.ConvertTo(unit):F1} {symbol}";
+                s = $"{v.In(unit):F1} {unit.Symbol}";
                 return true;
             }
             s = "";
             return false;
         }
 
-        public override bool TryGetValue(TrainCar car, out Q v)
+        public override bool TryGetValue(TrainCar car, out Quantity<D> v)
         {
             return values.TryGetValue(car.ID, out v);
         }
