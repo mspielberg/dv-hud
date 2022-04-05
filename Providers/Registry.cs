@@ -1,3 +1,4 @@
+using QuantitiesNet;
 using System;
 using System.Collections.Generic;
 
@@ -40,13 +41,18 @@ namespace DvMod.HeadsUpDisplay
             return pp.SetValue;
         }
 
-        public static Pusher? GetPusher(string label)
+        public static void RegisterPull<D>(string label, Func<TrainCar, Quantity<D>?> provider, IComparable order, bool hidden)
+        where D : IDimension, new()
         {
-            return GetProvider(label) switch
-            {
-                FloatPushProvider pp => pp.SetValue,
-                _ => null
-            };
+            Register(new QuantityQueryDataProvider<D>(label, provider, order, hidden));
+        }
+
+        public static Action<TrainCar, Quantity<D>> RegisterPush<D>(string label, IComparable order, bool hidden)
+        where D : IDimension, new()
+        {
+            var pp = new QuantityPushProvider<D>(label, order, hidden);
+            Register(pp);
+            return pp.SetValue;
         }
     }
 }
