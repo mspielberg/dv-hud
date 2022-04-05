@@ -31,6 +31,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\dotnet-quantities\QuantitiesNet\QuantitiesNet.csproj" />
+    <ProjectReference Include="..\..\QuantitiesNet\QuantitiesNet\QuantitiesNet.csproj" />
   </ItemGroup>
 </Project>

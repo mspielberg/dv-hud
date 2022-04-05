@@ -15,40 +15,28 @@ namespace DvMod.HeadsUpDisplay
 
         public static void Register()
         {
-            Registry.Register(new FloatQueryDataProvider(
+            Registry.Register(new QuantityQueryDataProvider<Length>(
                 "Altitude",
-                car => car.transform.position.y - 110f,
-                f => $"{f:F1} m"));
+                car => new QuantitiesNet.Quantities.Length(car.transform.position.y - 110f)));
 
-            Registry.Register(new FloatQueryDataProvider(
-                "Speed",
-                car => Mathf.Abs(car.GetForwardSpeed()) * 3.6f,
-                f => $"{f:F1} km/h"));
+            Registry.Register(new QuantityQueryDataProvider<Velocity>(
+                "SpeedQ",
+                car => new QuantitiesNet.Quantities.Velocity(car.GetForwardSpeed(), Meter / Second)));
 
             Registry.Register(new FloatQueryDataProvider(
                 "Grade",
-                car => {
+                car =>
+                {
                     var inclination = car.transform.localEulerAngles.x;
                     inclination = inclination > 180 ? 360f - inclination : -inclination;
                     return Mathf.Tan(inclination * Mathf.PI / 180) * 100;
                 },
                 f => f.ToString(GradeFormat)));
 
-            Registry.Register(new FloatQueryDataProvider(
+            Registry.Register(new QuantityQueryDataProvider<Pressure>(
                 "Brake pipe",
-                car => car.brakeSystem?.brakePipePressure,
-                f => $"{f:F2} bar"));
+                car => new QuantitiesNet.Quantities.Pressure(car.brakeSystem.brakePipePressure, Bar)));
 
-            Registry.Register(new QuantityQueryDataProvider<Velocity>(
-                "SpeedQ",
-                car => new QuantitiesNet.Quantities.Velocity(car.GetForwardSpeed(), Meter / Second)));
-            
-            if (UnitRegistry.Default.TryGetUnits<QuantitiesNet.Dimensions.Velocity>(out var velocityUnits))
-            {
-                var powerUnit = velocityUnits.First();
-                Main.DebugLog($"Setting default unit {powerUnit}");
-                UnitRegistry.Default.SetPreferredUnit(velocityUnits.First());
-            }
         }
     }
 }

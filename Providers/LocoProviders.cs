@@ -1,6 +1,5 @@
 using DV;
 using HarmonyLib;
-using QuantitiesNet;
 using QuantitiesNet.Quantities;
 using static QuantitiesNet.Units;
 using System;
@@ -13,16 +12,12 @@ namespace DvMod.HeadsUpDisplay
 {
     internal static class LocoProviders
     {
-        // public static FloatPushProvider tractiveEffortProvider = new FloatPushProvider(
-            // "Tractive effort", f => $"{f / 1000:F0} kN");
         public static QuantityPushProvider<QuantitiesNet.Dimensions.Force> tractiveEffortProvider =
             new QuantityPushProvider<QuantitiesNet.Dimensions.Force>("Tractive effort");
 
-        public static FloatPushProvider adhesionProvider = new FloatPushProvider(
-            "Adhesion", f => $"{f / 1000:F0} kN");
+        public static QuantityPushProvider<QuantitiesNet.Dimensions.Force> adhesionProvider =
+            new QuantityPushProvider<QuantitiesNet.Dimensions.Force>("Adhesion");
 
-        // public static FloatPushProvider indicatedPowerProvider = new FloatPushProvider(
-        //     "Power", f => $"{f / 1000:F0} kW");
         public static QuantityPushProvider<QuantitiesNet.Dimensions.Power> indicatedPowerProvider =
             new QuantityPushProvider<QuantitiesNet.Dimensions.Power>("Power");
 
@@ -37,19 +32,6 @@ namespace DvMod.HeadsUpDisplay
                 f => $"{f:P1}"));
 
             SteamLocoProviders.Register();
-
-            if (UnitRegistry.Default.TryGetUnits<QuantitiesNet.Dimensions.Force>(out var forceUnits))
-            {
-                var forceUnit = forceUnits.First();
-                Main.DebugLog($"Setting default unit {forceUnit}");
-                UnitRegistry.Default.SetPreferredUnit(forceUnits.First());
-            }
-            if (UnitRegistry.Default.TryGetUnits<QuantitiesNet.Dimensions.Power>(out var powerUnits))
-            {
-                var powerUnit = powerUnits.First();
-                Main.DebugLog($"Setting default unit {powerUnit}");
-                UnitRegistry.Default.SetPreferredUnit(powerUnits.First());
-            }
         }
 
         [HarmonyPatch]
@@ -91,13 +73,10 @@ namespace DvMod.HeadsUpDisplay
         [HarmonyPatch(typeof(DrivingForce), "UpdateWheelslip")]
         public static class UpdateWheelslipPatch
         {
-            private static readonly FieldInfo slipLimitField =
-                AccessTools.DeclaredField(typeof(DrivingForce), nameof(DrivingForce.tractionForceWheelslipLimit));
-
             public static void Postfix(DrivingForce __instance, Bogie bogie)
             {
                 var car = bogie.Car;
-                adhesionProvider.SetValue(car, (float)slipLimitField.GetValue(__instance) * car.Bogies.Length);
+                adhesionProvider.SetValue(car, new Force(__instance.tractionForceWheelslipLimit * car.Bogies.Length));
             }
         }
     }
