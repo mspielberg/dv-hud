@@ -116,7 +116,7 @@ namespace DvMod.HeadsUpDisplay
 
             GUILayout.BeginHorizontal();
 
-            if (Main.settings.showDrivingInfo)
+            if (Main.settings.drivingInfoSettings.enabled)
                 DrawCurrentCarInfo();
             if (Main.settings.trackInfoSettings.enabled)
                 EventList.DrawUpcomingEvents();

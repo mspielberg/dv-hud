@@ -58,15 +58,11 @@ namespace DvMod.HeadsUpDisplay
 
         public override bool TryGetFormatted(TrainCar car, out string s)
         {
-            if (TryGetValue(car, out var v))
+            if (TryGetValue(car, out var v)
+                && Main.settings.drivingInfoSettings.TryGetUnit(Label, Dimension, out var unit))
             {
-                Main.DebugLog($"Got value {v}");
-                if (Main.settings.unitSettings.TryGetUnit(Label, Dimension, out var unit))
-                {
-                    Main.DebugLog($"Got unit {unit}");
-                    s = $"{v.In(unit):F1} {unit.Symbol}";
-                    return true;
-                }
+                s = $"{v.In(unit):F1} {unit.Symbol}";
+                return true;
             }
             s = "";
             return false;
