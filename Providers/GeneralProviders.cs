@@ -1,5 +1,4 @@
 using QuantitiesNet;
-using static QuantitiesNet.Dimensions;
 using static QuantitiesNet.Units;
 using UnityEngine;
 using System.Linq;
@@ -15,13 +14,13 @@ namespace DvMod.HeadsUpDisplay
 
         public static void Register()
         {
-            Registry.Register(new QuantityQueryDataProvider<Length>(
+            Registry.Register(new QuantityQueryDataProvider<Dimensions.Length>(
                 "Altitude",
-                car => new QuantitiesNet.Quantities.Length(car.transform.position.y - 110f)));
+                car => new Quantities.Length(car.transform.position.y - 110f)));
 
-            Registry.Register(new QuantityQueryDataProvider<Velocity>(
-                "SpeedQ",
-                car => new QuantitiesNet.Quantities.Velocity(car.GetForwardSpeed(), Meter / Second)));
+            Registry.Register(new QuantityQueryDataProvider<Dimensions.Velocity>(
+                "Speed",
+                car => new Quantities.Velocity(car.GetForwardSpeed(), Meter / Second)));
 
             Registry.Register(new FloatQueryDataProvider(
                 "Grade",
@@ -33,9 +32,9 @@ namespace DvMod.HeadsUpDisplay
                 },
                 f => f.ToString(GradeFormat)));
 
-            Registry.Register(new QuantityQueryDataProvider<Pressure>(
+            Registry.Register(new QuantityQueryDataProvider<Dimensions.Pressure>(
                 "Brake pipe",
-                car => new QuantitiesNet.Quantities.Pressure(car.brakeSystem.brakePipePressure, Bar)));
+                car => new Quantities.Pressure(car.brakeSystem.brakePipePressure, Bar)));
 
         }
     }

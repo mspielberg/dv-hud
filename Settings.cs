@@ -12,30 +12,69 @@ namespace DvMod.HeadsUpDisplay
         {
             public bool enabled = true;
             public HashSet<string> disabledProviders = new HashSet<string>(Registry.providers.Keys);
-            // <summary>Map from a provider labels to its preferred unit symbol.</summary>
-            public List<(string label, string symbol)> preferredUnits = new List<(string, string)>();
+            public List<ProviderSettings> providerSettings = new List<ProviderSettings>();
+
+            public class ProviderSettings
+            {
+                public string providerLabel = "";
+                public string unitSymbol = "";
+                public int precision;
+            }
+
+            private void DrawPrecisionSettings(IDataProvider provider)
+            {
+                var settings = GetProviderSettings(provider);
+                UnityModManager.UI.DrawIntField(
+                    ref settings.precision, "Precision", style: null, GUILayout.Width(20), GUILayout.ExpandWidth(false));
+                if (settings.precision < 0)
+                    settings.precision = 0;
+            }
 
             private void DrawUnitSettings(IQuantityProvider provider)
             {
                 var dimension = provider.Dimension;
                 var label = provider.Label;
+                var settings = GetProviderSettings(provider);
 
                 var symbols = GetDisplaySymbols(dimension).ToList();
                 if (symbols.Count == 0)
                     return;
 
-                var currentSymbol = GetPreferredSymbol(label);
+                var currentSymbol = settings.unitSymbol;
                 var selectedIndex = symbols.IndexOf(currentSymbol);
                 if (selectedIndex < 0)
                 {
-                    SetPreferredSymbol(label, symbols[0]);
+                    settings.unitSymbol = symbols[0];
                     selectedIndex = 0;
                 }
 
                 var changed = UnityModManager.UI.ToggleGroup(
                     ref selectedIndex, symbols.ToArray(), style: null, GUILayout.MinWidth(50), GUILayout.ExpandWidth(false));
                 if (changed)
-                    SetPreferredSymbol(label, symbols[selectedIndex]);
+                    settings.unitSymbol = symbols[0];
+            }
+
+            private void DrawProviderSettings(IDataProvider provider)
+            {
+                var label = provider.Label;
+
+                GUILayout.BeginHorizontal();
+
+                GUILayout.Label(label, GUILayout.MinWidth(150), GUILayout.ExpandWidth(false));
+                var result = GUILayout.Toggle(
+                    !disabledProviders.Contains(label), "Enable", GUILayout.MinWidth(100), GUILayout.ExpandWidth(false));
+                if (result)
+                    disabledProviders.Remove(label);
+                else
+                    disabledProviders.Add(label);
+
+                if (provider is IQuantityProvider quantityProvider)
+                {
+                    DrawPrecisionSettings(quantityProvider);
+                    DrawUnitSettings(quantityProvider);
+                }
+
+                GUILayout.EndHorizontal();
             }
 
             private void DrawProviderSettings()
@@ -45,24 +84,7 @@ namespace DvMod.HeadsUpDisplay
                     .OrderBy(dp => dp.Order);
 
                 foreach (var provider in providers)
-                {
-                    var label = provider.Label;
-
-                    GUILayout.BeginHorizontal();
-
-                    GUILayout.Label(label, GUILayout.MinWidth(150), GUILayout.ExpandWidth(false));
-                    var result = GUILayout.Toggle(
-                        !disabledProviders.Contains(label), "Enable", GUILayout.MinWidth(100), GUILayout.ExpandWidth(false));
-                    if (result)
-                        disabledProviders.Remove(label);
-                    else
-                        disabledProviders.Add(label);
-
-                    if (provider is IQuantityProvider quantityProvider)
-                        DrawUnitSettings(quantityProvider);
-
-                    GUILayout.EndHorizontal();
-                }
+                    DrawProviderSettings(provider);
             }
 
             public void Draw()
@@ -87,7 +109,7 @@ namespace DvMod.HeadsUpDisplay
                 { Dimensions.Length.dimension, new List<string>() { "m", "ft" } },
                 { Dimensions.Power.dimension, new List<string>() { "kW", "hp" } },
                 { Dimensions.Pressure.dimension, new List<string>() { "bar", "psi" } },
-                { Dimensions.Velocity.dimension, new List<string>() { $"km{Unit.DivisionOperator}h", "mph" } },
+                { Dimensions.Velocity.dimension, new List<string>() { $"km/h", "mph" } },
             };
 
             private static IEnumerable<string> GetDisplaySymbols(Dimension dimension)
@@ -109,23 +131,23 @@ namespace DvMod.HeadsUpDisplay
                     .OfType<Unit>();
             }
 
-            private string GetPreferredSymbol(string label)
+            public ProviderSettings GetProviderSettings(IDataProvider provider)
             {
-                return preferredUnits.Where(p => p.label == label).Select(p => p.symbol).FirstOrDefault() ?? "";
+                var label = provider.Label;
+                var settings = providerSettings.FirstOrDefault(p => p.providerLabel == label);
+                if (settings == default)
+                {
+                    settings = new ProviderSettings() { providerLabel = label };
+                    providerSettings.Add(settings);
+                }
+                return settings;
             }
 
-            private void SetPreferredSymbol(string label, string symbol)
+            public bool TryGetUnit(IQuantityProvider provider, out Unit unit)
             {
-                var index = preferredUnits.FindIndex(p => p.label == label);
-                if (index < 0)
-                    preferredUnits.Add((label, symbol));
-                else
-                    preferredUnits[index] = (label, symbol);
-            }
-
-            public bool TryGetUnit(string label, Dimension dimension, out Unit unit)
-            {
-                var symbol = GetPreferredSymbol(label);
+                var settings = GetProviderSettings(provider);
+                var dimension = provider.Dimension;
+                var symbol = settings.unitSymbol;
                 if (symbol == "")
                     symbol = GetDisplaySymbols(dimension).FirstOrDefault() ?? "";
                 var maybeUnit = UnitForSymbol(dimension, symbol);
