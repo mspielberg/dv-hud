@@ -50,7 +50,6 @@ namespace DvMod.HeadsUpDisplay
         }
 
         public Dimension Dimension => Dimension.ForType<D>();
-        public string QuantityName => typeof(D).Name;
 
         public void SetValue(TrainCar car, Quantity<D> value)
         {
@@ -60,7 +59,7 @@ namespace DvMod.HeadsUpDisplay
         public override bool TryGetFormatted(TrainCar car, out string s)
         {
             if (TryGetValue(car, out var v) &&
-                UnitRegistry.Default.TryGetPreferredUnit(v.dimension, out var unit))
+                Main.settings.unitSettings.TryGetUnit(Label, Dimension, out var unit))
             {
                 s = $"{v.In(unit):F1} {unit.Symbol}";
                 return true;

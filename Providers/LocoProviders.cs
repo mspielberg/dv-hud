@@ -1,6 +1,6 @@
 using DV;
 using HarmonyLib;
-using QuantitiesNet.Quantities;
+using static QuantitiesNet.Quantities;
 using static QuantitiesNet.Units;
 using System;
 using System.Collections.Generic;

@@ -55,14 +55,13 @@ namespace DvMod.HeadsUpDisplay
         }
 
         public Dimension Dimension => Dimension.ForType<D>();
-        public string QuantityName => typeof(D).Name;
 
         public override bool TryGetFormatted(TrainCar car, out string s)
         {
             if (TryGetValue(car, out var v))
             {
                 Main.DebugLog($"Got value {v}");
-                if (UnitRegistry.Default.TryGetPreferredUnit(v.dimension, out var unit))
+                if (Main.settings.unitSettings.TryGetUnit(Label, Dimension, out var unit))
                 {
                     Main.DebugLog($"Got unit {unit}");
                     s = $"{v.In(unit):F1} {unit.Symbol}";
@@ -81,7 +80,9 @@ namespace DvMod.HeadsUpDisplay
                 v = result;
                 return true;
             }
+            #pragma warning disable CS8625
             v = default;
+            #pragma warning restore CS8625
             return false;
         }
     }

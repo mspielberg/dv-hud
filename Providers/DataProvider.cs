@@ -28,9 +28,8 @@ namespace DvMod.HeadsUpDisplay
         }
     }
 
-    public interface IQuantityProvider : IDimension
+    public interface IQuantityProvider : IDataProvider, IDimension
     {
-        public string QuantityName { get; }
     }
 
     public static class DataProviders

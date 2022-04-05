@@ -105,39 +105,105 @@ namespace DvMod.HeadsUpDisplay
 
     public class UnitSettings : UnityModManager.ModSettings
     {
-        public readonly Dictionary<string, string> preferredUnits = new Dictionary<string, string>();
+        // <summary>Map from a provider labels to its preferred unit symbol.</summary>
+        public readonly List<(string label, string symbol)> preferredUnits = new List<(string, string)>();
 
-        public Unit? GetUnit<D>() where D : IDimension, new()
+        private readonly static Dictionary<string, List<string>> KnownUnits = new Dictionary<string, List<string>>()
         {
-            if (preferredUnits.TryGetValue(nameof(D), out var symbol)
-                && UnitRegistry.Default.TryGetUnits(Dimension.ForType<D>(), out var unit))
+            { "Force", new List<string>() { "kN", "lbf" } },
+            { "Length", new List<string>() { "m", "ft" } },
+            { "Power", new List<string>() { "kW", "hp" } },
+            { "Pressure", new List<string>() { "bar", "psi" } },
+            { "Velocity", new List<string>() { $"km{Unit.DivisionOperator}h", "mph" } },
+        };
+
+        private static IEnumerable<string> GetDisplaySymbols(Dimension dimension)
+        {
+            var dimensionName = Quantities.GetName(dimension);
+            if (dimensionName != null && KnownUnits.TryGetValue(dimensionName, out var symbols))
+                return symbols;
+
+            // fallback to all registered units if not known
+            if (UnitRegistry.Default.TryGetUnits(dimension, out var units))
+                return units.Select(unit => unit.Symbol);
+
+            return Enumerable.Empty<string>();
+        }
+
+        private static IEnumerable<Unit> GetDisplayUnits(Dimension dimension)
+        {
+            return GetDisplaySymbols(dimension)
+                .Select(symbol => UnitForSymbol(dimension, symbol))
+                .OfType<Unit>();
+        }
+
+        private string GetPreferredSymbol(string label)
+        {
+            return preferredUnits.Where(p => p.label == label).Select(p => p.symbol).FirstOrDefault() ?? "";
+        }
+
+        private void SetPreferredSymbol(string label, string symbol)
+        {
+            var index = preferredUnits.FindIndex(p => p.label == label);
+            if (index < 0)
+                preferredUnits.Add((label, symbol));
+            else
+                preferredUnits[index] = (label, symbol);
+        }
+
+        public bool TryGetUnit(string label, Dimension dimension, out Unit unit)
+        {
+            var symbol = GetPreferredSymbol(label);
+            if (symbol == "")
+                symbol = GetDisplaySymbols(dimension).FirstOrDefault() ?? "";
+            var maybeUnit = UnitForSymbol(dimension, symbol);
+            if (maybeUnit == null)
             {
-                return unit.FirstOrDefault(u => u.Symbol == symbol);
+                unit = default;
+                return false;
             }
-            return null;
+
+            unit = (Unit)maybeUnit;
+            return true;
+        }
+
+        private static Unit? UnitForSymbol(Dimension dimension, string symbol)
+        {
+            if (UnitRegistry.Default.TryGetUnits(dimension, out var units))
+            {
+                return units.FirstOrDefault(unit => unit.Symbol == symbol);
+            }
+            return default;
         }
 
         public void Draw()
         {
-            foreach (var provider in Registry.providers.Values.OfType<IQuantityProvider>())
+            var labelsAndDimensions = Registry.providers.Values
+                .OfType<IQuantityProvider>()
+                .OrderBy(p => p.Label)
+                .Select(p => (p.Label, p.Dimension));
+
+            foreach (var (label, dimension) in labelsAndDimensions)
             {
-                var dimension = provider.Dimension;
-                var quantityName = provider.QuantityName;
-                var haveSymbol = preferredUnits.TryGetValue(quantityName, out var currentSymbol);
-                if (UnitRegistry.Default.TryGetUnits(dimension, out var units))
+                var symbols = GetDisplaySymbols(dimension).ToList();
+                if (symbols.Count == 0)
+                    continue;
+
+                var currentSymbol = GetPreferredSymbol(label);
+                var selectedIndex = symbols.IndexOf(currentSymbol);
+                if (selectedIndex < 0)
                 {
-                    var unitList = units;
-                    var selectedIndex = !haveSymbol ? 0 :
-                        unitList
-                        .Select((unit, index) => (unit, index))
-                        .FirstOrDefault(p => p.unit.Symbol == currentSymbol).index;
-                    GUILayout.BeginHorizontal();
-                    GUILayout.Label(quantityName);
-                    var changed = UnityModManager.UI.ToggleGroup(ref selectedIndex, unitList.Select(u => u.Symbol).ToArray());
-                    if (changed)
-                        preferredUnits[quantityName] = unitList[selectedIndex].Symbol;
-                    GUILayout.EndHorizontal();
+                    SetPreferredSymbol(label, symbols[0]);
+                    selectedIndex = 0;
                 }
+
+                GUILayout.BeginHorizontal(); // GUILayout.ExpandWidth(false));
+                GUILayout.Label(label, GUILayout.MinWidth(100), GUILayout.ExpandWidth(false));
+                var changed = UnityModManager.UI.ToggleGroup(
+                    ref selectedIndex, symbols.ToArray(), style: null, GUILayout.MinWidth(50), GUILayout.ExpandWidth(false));
+                if (changed)
+                    SetPreferredSymbol(label, symbols[selectedIndex]);
+                GUILayout.EndHorizontal();
             }
         }
     }

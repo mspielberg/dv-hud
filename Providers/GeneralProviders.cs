@@ -1,5 +1,5 @@
 using QuantitiesNet;
-using QuantitiesNet.Dimensions;
+using static QuantitiesNet.Dimensions;
 using static QuantitiesNet.Units;
 using UnityEngine;
 using System.Linq;
