@@ -1,5 +1,6 @@
 using DV;
 using HarmonyLib;
+using QuantitiesNet;
 using static QuantitiesNet.Quantities;
 using static QuantitiesNet.Units;
 using System;
@@ -12,14 +13,14 @@ namespace DvMod.HeadsUpDisplay
 {
     internal static class LocoProviders
     {
-        public static QuantityPushProvider<QuantitiesNet.Dimensions.Force> tractiveEffortProvider =
-            new QuantityPushProvider<QuantitiesNet.Dimensions.Force>("Tractive effort");
+        public static QuantityPushProvider<Dimensions.Force> tractiveEffortProvider =
+            new QuantityPushProvider<Dimensions.Force>("Tractive effort");
 
-        public static QuantityPushProvider<QuantitiesNet.Dimensions.Force> adhesionProvider =
-            new QuantityPushProvider<QuantitiesNet.Dimensions.Force>("Adhesion");
+        public static QuantityPushProvider<Dimensions.Force> adhesionProvider =
+            new QuantityPushProvider<Dimensions.Force>("Adhesion");
 
-        public static QuantityPushProvider<QuantitiesNet.Dimensions.Power> indicatedPowerProvider =
-            new QuantityPushProvider<QuantitiesNet.Dimensions.Power>("Power");
+        public static QuantityPushProvider<Dimensions.Power> indicatedPowerProvider =
+            new QuantityPushProvider<Dimensions.Power>("Power");
 
         public static void Register()
         {
@@ -87,6 +88,13 @@ namespace DvMod.HeadsUpDisplay
 
         public static void Register()
         {
+            Registry.Register(new QuantityQueryDataProvider<Dimensions.Pressure>("Boiler pressure", car =>
+                {
+                    var sim = car.GetComponent<SteamLocoSimulation>();
+                    if (sim == null)
+                        return null;
+                    return new Pressure(sim.boilerPressure.value, Bar);
+                }));
             Registry.Register(cutoffProvider);
         }
 
