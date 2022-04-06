@@ -20,7 +20,7 @@ namespace DvMod.HeadsUpDisplay
 
             Registry.Register(new QuantityQueryDataProvider<Dimensions.Velocity>(
                 "Speed",
-                car => new Quantities.Velocity(car.GetForwardSpeed(), Meter / Second)));
+                car => new Quantities.Velocity(Mathf.Abs(car.GetForwardSpeed()), Meter / Second)));
 
             Registry.Register(new FloatQueryDataProvider(
                 "Grade",
