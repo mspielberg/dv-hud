@@ -14,11 +14,20 @@ namespace DvMod.HeadsUpDisplay
             public HashSet<string> disabledProviders = new HashSet<string>(Registry.providers.Keys);
             public List<ProviderSettings> providerSettings = new List<ProviderSettings>();
 
+            static DrivingInfoSettings()
+            {
+                UnitRegistry.Default.Add(Unit.Of<Dimensions.MassFlow>("kg/h", 1, QuantitiesNet.Units.Kilogram / QuantitiesNet.Units.Hour));
+                UnitRegistry.Default.Add(Unit.Of<Dimensions.MassFlow>("lb/h", 1, QuantitiesNet.Units.Pound / QuantitiesNet.Units.Hour));
+                UnitRegistry.Default.Add(Unit.Of<Dimensions.Power>("btu/m", 1, QuantitiesNet.Units.Btu/ QuantitiesNet.Units.Minute));
+            }
+
             public class ProviderSettings
             {
                 public string providerLabel = "";
                 public string unitSymbol = "";
                 public int precision;
+
+                public override string ToString() => $"{providerLabel}: {unitSymbol}, {precision}";
             }
 
             private void DrawPrecisionSettings(IDataProvider provider)
@@ -33,7 +42,6 @@ namespace DvMod.HeadsUpDisplay
             private void DrawUnitSettings(IQuantityProvider provider)
             {
                 var dimension = provider.Dimension;
-                var label = provider.Label;
                 var settings = GetProviderSettings(provider);
 
                 var symbols = GetDisplaySymbols(dimension).ToList();
@@ -51,7 +59,7 @@ namespace DvMod.HeadsUpDisplay
                 var changed = UnityModManager.UI.ToggleGroup(
                     ref selectedIndex, symbols.ToArray(), style: null, GUILayout.MinWidth(50), GUILayout.ExpandWidth(false));
                 if (changed)
-                    settings.unitSymbol = symbols[0];
+                    settings.unitSymbol = symbols[selectedIndex];
             }
 
             private void DrawProviderSettings(IDataProvider provider)
@@ -107,9 +115,10 @@ namespace DvMod.HeadsUpDisplay
             {
                 { Dimensions.Force.dimension, new List<string>() { "kN", "lbf" } },
                 { Dimensions.Length.dimension, new List<string>() { "m", "ft" } },
-                { Dimensions.Power.dimension, new List<string>() { "kW", "hp" } },
+                { Dimensions.Mass.dimension, new List<string>() { "kg", "lb" } },
+                { Dimensions.Power.dimension, new List<string>() { "kW", "hp", "btu/m" } },
                 { Dimensions.Pressure.dimension, new List<string>() { "bar", "psi" } },
-                { Dimensions.Velocity.dimension, new List<string>() { $"km/h", "mph" } },
+                { Dimensions.Velocity.dimension, new List<string>() { "km/h", "mph" } },
             };
 
             private static IEnumerable<string> GetDisplaySymbols(Dimension dimension)
@@ -124,19 +133,13 @@ namespace DvMod.HeadsUpDisplay
                 return Enumerable.Empty<string>();
             }
 
-            private static IEnumerable<Unit> GetDisplayUnits(Dimension dimension)
-            {
-                return GetDisplaySymbols(dimension)
-                    .Select(symbol => UnitForSymbol(dimension, symbol))
-                    .OfType<Unit>();
-            }
-
             public ProviderSettings GetProviderSettings(IDataProvider provider)
             {
                 var label = provider.Label;
-                var settings = providerSettings.FirstOrDefault(p => p.providerLabel == label);
+                var settings = providerSettings.Find(p => p.providerLabel == label);
                 if (settings == default)
                 {
+                    Main.DebugLog($"Creating new ProviderSettings for {label}");
                     settings = new ProviderSettings() { providerLabel = label };
                     providerSettings.Add(settings);
                 }
@@ -148,7 +151,7 @@ namespace DvMod.HeadsUpDisplay
                 var settings = GetProviderSettings(provider);
                 var dimension = provider.Dimension;
                 var symbol = settings.unitSymbol;
-                if (symbol == "")
+                if (symbol.Length == 0)
                     symbol = GetDisplaySymbols(dimension).FirstOrDefault() ?? "";
                 var maybeUnit = UnitForSymbol(dimension, symbol);
                 if (maybeUnit == null)
@@ -165,7 +168,7 @@ namespace DvMod.HeadsUpDisplay
             {
                 if (UnitRegistry.Default.TryGetUnits(dimension, out var units))
                 {
-                    return units.FirstOrDefault(unit => unit.Symbol == symbol);
+                    return units.Find(unit => unit.Symbol == symbol);
                 }
                 return default;
             }
