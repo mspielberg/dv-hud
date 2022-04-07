@@ -155,7 +155,9 @@ namespace DvMod.HeadsUpDisplay
                 var maybeUnit = UnitForSymbol(dimension, symbol);
                 if (maybeUnit == null)
                 {
+#pragma warning disable CS8625
                     unit = default;
+#pragma warning restore CS8625
                     return false;
                 }
 
