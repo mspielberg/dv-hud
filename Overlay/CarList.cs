@@ -299,7 +299,7 @@ namespace DvMod.HeadsUpDisplay
             GUILayout.EndHorizontal();
         }
 
-        private const float HueOrange = 30f/360f;
+        private const float HueOrange = 30f / 360f;
         private static Color GetCarColor(TrainCar car)
         {
             if (car.derailed)

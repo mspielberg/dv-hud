@@ -79,9 +79,9 @@ namespace DvMod.HeadsUpDisplay
                 v = result;
                 return true;
             }
-            #pragma warning disable CS8625
+#pragma warning disable CS8625
             v = default;
-            #pragma warning restore CS8625
+#pragma warning restore CS8625
             return false;
         }
     }

@@ -18,7 +18,7 @@ namespace DvMod.HeadsUpDisplay
             {
                 UnitRegistry.Default.Add(Unit.Of<Dimensions.MassFlow>("kg/h", 1, QuantitiesNet.Units.Kilogram / QuantitiesNet.Units.Hour));
                 UnitRegistry.Default.Add(Unit.Of<Dimensions.MassFlow>("lb/h", 1, QuantitiesNet.Units.Pound / QuantitiesNet.Units.Hour));
-                UnitRegistry.Default.Add(Unit.Of<Dimensions.Power>("btu/m", 1, QuantitiesNet.Units.Btu/ QuantitiesNet.Units.Minute));
+                UnitRegistry.Default.Add(Unit.Of<Dimensions.Power>("btu/m", 1, QuantitiesNet.Units.Btu / QuantitiesNet.Units.Minute));
             }
 
             public class ProviderSettings
