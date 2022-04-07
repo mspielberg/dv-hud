@@ -43,7 +43,7 @@ namespace DvMod.HeadsUpDisplay
                 if (!AppUtil.IsPaused)
                 {
                     tractiveEffortProvider.SetValue(__instance.train, new Force(__result, Newton));
-                    indicatedPowerProvider.SetValue(__instance.train, new Force(__result, Newton) * new Velocity(__instance.GetSpeedKmH(), Kilometer / Hour));
+                    indicatedPowerProvider.SetValue(__instance.train, new Force(__result, Newton) * new Velocity(__instance.GetSpeedKmH(), KilometersPerHour));
                 }
             }
 
@@ -52,7 +52,7 @@ namespace DvMod.HeadsUpDisplay
                 yield return AccessTools.Method(typeof(LocoControllerDiesel), nameof(LocoControllerBase.GetTractionForce));
                 yield return AccessTools.Method(typeof(LocoControllerShunter), nameof(LocoControllerBase.GetTractionForce));
                 yield return AccessTools.Method(typeof(LocoControllerSteam), nameof(LocoControllerBase.GetTractionForce));
-                if (UnityModManager.FindMod("DVCustomCarLoader")?.Assembly is Assembly assembly && assembly != null)
+                if (UnityModManager.FindMod("DVCustomCarLoader")?.Assembly is Assembly assembly)
                 {
                     var typeNames = new string[]
                     {

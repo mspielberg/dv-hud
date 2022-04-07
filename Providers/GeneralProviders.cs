@@ -20,7 +20,7 @@ namespace DvMod.HeadsUpDisplay
 
             Registry.Register(new QuantityQueryDataProvider<Dimensions.Velocity>(
                 "Speed",
-                car => new Quantities.Velocity(Mathf.Abs(car.GetForwardSpeed()), Meter / Second)));
+                car => new Quantities.Velocity(Mathf.Abs(car.GetForwardSpeed()), MetersPerSecond)));
 
             Registry.Register(new FloatQueryDataProvider(
                 "Grade",
@@ -35,7 +35,6 @@ namespace DvMod.HeadsUpDisplay
             Registry.Register(new QuantityQueryDataProvider<Dimensions.Pressure>(
                 "Brake pipe",
                 car => new Quantities.Pressure(car.brakeSystem.brakePipePressure, Bar)));
-
         }
     }
 }
