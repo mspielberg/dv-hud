@@ -1,3 +1,5 @@
+using QuantitiesNet;
+using static QuantitiesNet.Units;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -175,6 +177,17 @@ namespace DvMod.HeadsUpDisplay
             if (trainset == null)
                 return;
 
+            string FormattedLength()
+            {
+                switch (Main.settings.trainInfoSettings.lengthUnits)
+                {
+                    case Settings.TrainInfoSettings.LengthUnits.ft:
+                        return $"{new Quantities.Length(trainset.OverallLength()).In(Foot):F0} ft";
+                    default:
+                        return $"{trainset.OverallLength():F0} m";
+                }
+            }
+
             GUILayout.BeginVertical("box");
 
             if (Main.settings.trainInfoSettings.showTrainInfo)
@@ -184,7 +197,7 @@ namespace DvMod.HeadsUpDisplay
                 GUILayout.Space(ColumnSpacing);
                 GUILayout.Label($"{trainset.cars.Count} car{(trainset.cars.Count != 1 ? "s" : "")}");
                 GUILayout.Space(ColumnSpacing);
-                GUILayout.Label($"{trainset.OverallLength():F0} m");
+                GUILayout.Label(FormattedLength());
                 GUILayout.Space(ColumnSpacing);
                 GUILayout.Label($"{trainset.TotalMass() / 1000:F0} t");
                 GUILayout.EndHorizontal();

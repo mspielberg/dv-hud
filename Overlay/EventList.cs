@@ -1,4 +1,6 @@
 using DV.Logic.Job;
+using QuantitiesNet;
+using static QuantitiesNet.Units;
 using System;
 using System.Linq;
 using UnityEngine;
@@ -66,7 +68,20 @@ namespace DvMod.HeadsUpDisplay
                     })
                 .ToList();
 
-            static string FormatSpan((double span, string description) ev) => $"{Math.Round(ev.span / 10) * 10:F0} m";
+            static string FormatSpan((double span, string description) ev)
+            {
+                var spanQuantity = new Quantity<Dimensions.Length>(ev.span);
+                switch (Main.settings.trackInfoSettings.distanceUnits)
+                {
+                    case Settings.TrackInfoSettings.EventDistanceUnits.ft:
+                        return $"{Math.Round(spanQuantity.In(Foot) / 100) * 100:F0} ft";
+                    case Settings.TrackInfoSettings.EventDistanceUnits.mi:
+                        return $"{spanQuantity.In(Mile):F1} mi";
+                    default:
+                        return $"{Math.Round(spanQuantity.In(Meter) / 10) * 10:F0} m";
+                }
+            }
+
             var blanks = Enumerable.Repeat(" ", trackInfoSettings.maxEventCount - eventDescriptions.Count);
 
             GUILayout.BeginHorizontal("box", GUILayout.ExpandHeight(true));

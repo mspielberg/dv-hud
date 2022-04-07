@@ -177,15 +177,28 @@ namespace DvMod.HeadsUpDisplay
 
         public class TrackInfoSettings
         {
+            public enum EventDistanceUnits
+            {
+                m,
+                mi,
+                ft,
+            }
             [Draw("Enable")] public bool enabled = true;
             [Draw("Max events", VisibleOn = "enabled|true")] public int maxEventCount = 10;
             [Draw("Max distance", VisibleOn = "enabled|true")] public double maxEventSpan = 5000;
+            [Draw("Distance units", Type = DrawType.ToggleGroup)] public EventDistanceUnits distanceUnits = EventDistanceUnits.m;
         }
 
         public class TrainInfoSettings
         {
+            public enum LengthUnits
+            {
+                m,
+                ft,
+            }
             [Draw("Enable")] public bool enabled = true;
             [Draw("Length & mass")] public bool showTrainInfo = true;
+            [Draw("Length units", Type = DrawType.ToggleGroup)] public LengthUnits lengthUnits = LengthUnits.m;
             [Draw("Car list")] public bool showCarList = true;
             [Draw("Update period", Min = 0f, VisibleOn = "showCarList|true")] public float updatePeriod = 0.25f;
             [Draw("Group by job", VisibleOn = "showCarList|true")] public bool groupCarsByJob = true;
