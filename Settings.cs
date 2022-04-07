@@ -139,7 +139,6 @@ namespace DvMod.HeadsUpDisplay
                 var settings = providerSettings.Find(p => p.providerLabel == label);
                 if (settings == default)
                 {
-                    Main.DebugLog($"Creating new ProviderSettings for {label}");
                     settings = new ProviderSettings() { providerLabel = label };
                     providerSettings.Add(settings);
                 }

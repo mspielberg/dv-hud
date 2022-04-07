@@ -1,8 +1,11 @@
-using System.Collections.Generic;
-using System.Linq;
 using DV.Logic.Job;
 using DV.MultipleUnit;
 using DV.Simulation.Brake;
+using QuantitiesNet;
+using static QuantitiesNet.Quantities;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityModManagerNet;
 
@@ -20,9 +23,9 @@ namespace DvMod.HeadsUpDisplay
             public readonly Job? job;
             public readonly Track? nextDestination;
 
-            public readonly float minBrakePipePressure;
-            public readonly float minBrakeReservoirPressure;
-            public readonly float maxBrakeCylinderPressure;
+            public readonly Pressure minBrakePipePressure;
+            public readonly Pressure minBrakeReservoirPressure;
+            public readonly Pressure maxBrakeCylinderPressure;
             public readonly float maxBrakeFactor;
 
             public readonly List<char> brakeModes;
@@ -35,9 +38,9 @@ namespace DvMod.HeadsUpDisplay
                 float? maxCouplerStress,
                 Job? job,
                 Track? nextDestination,
-                float minBrakePipePressure,
-                float minBrakeReservoirPressure,
-                float maxBrakeCylinderPressure,
+                Pressure minBrakePipePressure,
+                Pressure minBrakeReservoirPressure,
+                Pressure maxBrakeCylinderPressure,
                 float maxBrakeFactor,
                 IEnumerable<char> brakeModes)
             {
@@ -99,26 +102,32 @@ namespace DvMod.HeadsUpDisplay
             return null;
         }
 
-        private static float GetAuxReservoirPressure(TrainCar car)
+        private static Pressure GetPressure(IDataProvider? provider, TrainCar car)
         {
-            if (car.IsLoco)
-                return car.brakeSystem.mainReservoirPressure;
-            if (Registry.GetProvider("Aux reservoir") is DataProvider<float> provider
-                && provider.TryGetValue(car, out var v))
+            switch (provider)
             {
-                return v;
+                case DataProvider<Quantity<Dimensions.Pressure>> quantityProvider:
+                    if (quantityProvider.TryGetValue(car, out var quantity) && quantity is Pressure pressure)
+                        return pressure;
+                    break;
+                case DataProvider<float> floatProvider:
+                    if (floatProvider.TryGetValue(car, out var v))
+                        return new Pressure(v, QuantitiesNet.Units.Bar);
+                    break;
             }
-            return default;
+            return new Pressure();
         }
 
-        private static float GetBrakeCylinderPressure(TrainCar car)
+        private static Pressure GetAuxReservoirPressure(TrainCar car)
         {
-            if (Registry.GetProvider("Brake cylinder") is DataProvider<float> provider
-                && provider.TryGetValue(car, out var v))
-            {
-                return v;
-            }
-            return default;
+            if (car.IsLoco)
+                return new Pressure(car.brakeSystem.mainReservoirPressure, QuantitiesNet.Units.Bar);
+            return GetPressure(Registry.GetProvider("Aux reservoir"), car);
+        }
+
+        private static Pressure GetBrakeCylinderPressure(TrainCar car)
+        {
+            return GetPressure(Registry.GetProvider("Brake cylinder"), car);
         }
 
         private static char GetTripleValveState(TrainCar car)
@@ -141,9 +150,9 @@ namespace DvMod.HeadsUpDisplay
 
             var firstCar = cars.First();
             var groupCars = new List<TrainCar>() { firstCar };
-            float minBrakePipePressure = firstCar.brakeSystem.brakePipePressure;
-            float minBrakeReservoirPressure = GetAuxReservoirPressure(firstCar);
-            float maxBrakeCylinderPressure = GetBrakeCylinderPressure(firstCar);
+            Pressure minBrakePipePressure = new Pressure(firstCar.brakeSystem.brakePipePressure, QuantitiesNet.Units.Bar);
+            Pressure minBrakeReservoirPressure = GetAuxReservoirPressure(firstCar);
+            Pressure maxBrakeCylinderPressure = GetBrakeCylinderPressure(firstCar);
             float maxBrakeFactor = firstCar.brakeSystem.brakingFactor;
 
             var brakeModes = new SortedSet<char>();
@@ -159,9 +168,9 @@ namespace DvMod.HeadsUpDisplay
                 Job? job = JobChainController.GetJobOfCar(car);
                 Track? nextDestination = GetNextDestinationTrack(job, car.logicCar);
                 BrakeSystem brakeSystem = car.brakeSystem;
-                float pipePressure = brakeSystem.brakePipePressure;
-                float auxReservoirPressure = GetAuxReservoirPressure(car);
-                float brakeCylinderPressure = GetBrakeCylinderPressure(car);
+                Pressure pipePressure = new Pressure(brakeSystem.brakePipePressure, QuantitiesNet.Units.Bar);
+                Pressure auxReservoirPressure = GetAuxReservoirPressure(car);
+                Pressure brakeCylinderPressure = GetBrakeCylinderPressure(car);
 
                 if (individual || nextDestination == null || nextDestination != prevDestTrack || job != prevJob)
                 {
@@ -248,10 +257,10 @@ namespace DvMod.HeadsUpDisplay
             if (cars.Last() == PlayerManager.LastLoco || (!cars.First().IsLoco && cars.Last().IsLoco))
                 cars = cars.Reverse();
 
-            if (groups == null || Time.time - lastUpdateTime >= Main.settings.trainInfoSettings.updatePeriod)
+            if (groups == null || UnityEngine.Time.time - lastUpdateTime >= Main.settings.trainInfoSettings.updatePeriod)
             {
                 groups = GetCarGroups(cars, !trainInfoSettings.groupCarsByJob).ToArray();
-                lastUpdateTime = Time.time;
+                lastUpdateTime = UnityEngine.Time.time;
             }
 
             GUILayout.BeginHorizontal();
@@ -418,15 +427,31 @@ namespace DvMod.HeadsUpDisplay
             return job?.tasks.Select(task => GetNextDestinationTrack(task, car)).FirstOrDefault(track => track != null);
         }
 
+        private static Func<Pressure, string> MakePressureFormatter(string providerLabel)
+        {
+            var provider = Registry.GetProvider(providerLabel);
+            if (provider is IQuantityProvider quantityProvider)
+            {
+                Main.settings.drivingInfoSettings.TryGetUnit(quantityProvider, out var unit);
+                var providerSettings = Main.settings.drivingInfoSettings.GetProviderSettings(quantityProvider);
+                return pressure => pressure.In(unit).ToString($"F{providerSettings.precision}");
+            }
+            return pressure => $"{pressure.Scalar:F2}";
+        }
+
+        private static Func<Pressure, string> BrakePipeFormatter => MakePressureFormatter("Brake pipe");
+        private static Func<Pressure, string> AuxReservoirFormatter => MakePressureFormatter("Aux reservoir");
+        private static Func<Pressure, string> BrakeCylinderFormatter => MakePressureFormatter("Brake cylinder");
+
         private static void DrawCarBrakeStatus(IEnumerable<CarGroup> groups)
         {
             var airBrakeModEnabled = UnityModManager.FindMod("AirBrake")?.Enabled ?? false;
-            Overlay.DrawColumn(groups, "Pipe", g => g.minBrakePipePressure.ToString("F2"));
+            Overlay.DrawColumn(groups, "Pipe", g => BrakePipeFormatter(g.minBrakePipePressure));
             if (airBrakeModEnabled)
             {
-                Overlay.DrawColumn(groups, "Res", g => g.minBrakeReservoirPressure.ToString("F2"));
+                Overlay.DrawColumn(groups, "Res", g => AuxReservoirFormatter(g.minBrakeReservoirPressure));
                 Overlay.DrawColumn(groups, "Mode", g => string.Join("", g.brakeModes));
-                Overlay.DrawColumn(groups, "Cyl", g => g.maxBrakeCylinderPressure.ToString("F2"));
+                Overlay.DrawColumn(groups, "Cyl", g => BrakeCylinderFormatter(g.maxBrakeCylinderPressure));
             }
             Overlay.DrawColumn(groups, "Force", g => g.maxBrakeFactor.ToString("P0"), Styles.rightAlign);
         }
