@@ -146,10 +146,10 @@ namespace DvMod.HeadsUpDisplay
                 return null;
             }
 
-            var labelsAndValues = Registry.providers.Values
+            var labelsAndValues = Main.settings.drivingInfoSettings.providerSettings
+                .Select(settings => Registry.providers[settings.providerLabel])
                 .Where(dp => !dp.Hidden)
                 .Where(Main.settings.IsEnabled)
-                .OrderBy(dp => dp.Order)
                 .Select(dp => GetFormattedFromProvider(dp, PlayerManager.Car))
                 .OfType<(string, string)>();
 

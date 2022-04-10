@@ -30,9 +30,28 @@ namespace DvMod.HeadsUpDisplay
                 public override string ToString() => $"{providerLabel}: {unitSymbol}, {precision}";
             }
 
-            private void DrawPrecisionSettings(IDataProvider provider)
+            private void DrawOrderButtons(ProviderSettings settings, int providerIndex)
             {
-                var settings = GetProviderSettings(provider);
+                GUILayout.BeginVertical();
+
+                GUI.enabled = providerIndex > 0;
+                var upPressed = GUILayout.Button("^");
+                GUI.enabled = providerIndex + 1 < providerSettings.Count;
+                var downPressed = GUILayout.Button("v");
+                GUI.enabled = true;
+
+                if (upPressed || downPressed)
+                    providerSettings.RemoveAt(providerIndex);
+                if (upPressed)
+                    providerSettings.Insert(providerIndex - 1, settings);
+                else if (downPressed)
+                    providerSettings.Insert(providerIndex + 1, settings);
+
+                GUILayout.EndVertical();
+            }
+
+            private void DrawPrecisionSettings(ProviderSettings settings)
+            {
                 UnityModManager.UI.DrawIntField(
                     ref settings.precision, "Precision", style: null, GUILayout.Width(20), GUILayout.ExpandWidth(false));
                 if (settings.precision < 0)
@@ -62,11 +81,15 @@ namespace DvMod.HeadsUpDisplay
                     settings.unitSymbol = symbols[selectedIndex];
             }
 
-            private void DrawProviderSettings(IDataProvider provider)
+            private void DrawProviderSettings(ProviderSettings settings, int providerIndex)
             {
-                var label = provider.Label;
+                var label = settings.providerLabel;
+                if (!Registry.providers.TryGetValue(label, out var provider) || provider.Hidden)
+                    return;
 
                 GUILayout.BeginHorizontal();
+
+                DrawOrderButtons(settings, providerIndex);
 
                 GUILayout.Label(label, GUILayout.MinWidth(150), GUILayout.ExpandWidth(false));
                 var result = GUILayout.Toggle(
@@ -78,7 +101,7 @@ namespace DvMod.HeadsUpDisplay
 
                 if (provider is IQuantityProvider quantityProvider)
                 {
-                    DrawPrecisionSettings(quantityProvider);
+                    DrawPrecisionSettings(settings);
                     DrawUnitSettings(quantityProvider);
                 }
 
@@ -87,12 +110,8 @@ namespace DvMod.HeadsUpDisplay
 
             private void DrawProviderSettings()
             {
-                var providers = Registry.providers.Values
-                    .Where(dp => !dp.Hidden)
-                    .OrderBy(dp => dp.Order);
-
-                foreach (var provider in providers)
-                    DrawProviderSettings(provider);
+                foreach (var (settings, index) in providerSettings.Select((x, i) => (x, i)))
+                    DrawProviderSettings(settings, index);
             }
 
             public void Draw()
@@ -131,6 +150,11 @@ namespace DvMod.HeadsUpDisplay
                     return units.Select(unit => unit.Symbol);
 
                 return Enumerable.Empty<string>();
+            }
+
+            public void EnsureProviderSettings(IDataProvider provider)
+            {
+                GetProviderSettings(provider);
             }
 
             public ProviderSettings GetProviderSettings(IDataProvider provider)
