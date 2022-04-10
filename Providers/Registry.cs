@@ -15,6 +15,7 @@ namespace DvMod.HeadsUpDisplay
         public static void Register(IDataProvider dp)
         {
             providers[dp.Label] = dp;
+            Main.settings.drivingInfoSettings.EnsureProviderSettings(dp);
             Main.DebugLog($"Registered data provider for {dp.Label}");
         }
 

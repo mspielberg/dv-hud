@@ -14,6 +14,8 @@ namespace DvMod.HeadsUpDisplay
             public HashSet<string> disabledProviders = new HashSet<string>(Registry.providers.Keys);
             public List<ProviderSettings> providerSettings = new List<ProviderSettings>();
 
+            private (int providerIndex, bool moveUp)? orderChange = null;
+
             static DrivingInfoSettings()
             {
                 UnitRegistry.Default.Add(Unit.Of<Dimensions.MassFlow>("kg/h", 1, QuantitiesNet.Units.Kilogram / QuantitiesNet.Units.Hour));
@@ -30,9 +32,26 @@ namespace DvMod.HeadsUpDisplay
                 public override string ToString() => $"{providerLabel}: {unitSymbol}, {precision}";
             }
 
-            private void DrawPrecisionSettings(IDataProvider provider)
+            private void DrawOrderButtons(int providerIndex)
             {
-                var settings = GetProviderSettings(provider);
+                GUILayout.BeginVertical(GUILayout.Width(30));
+
+                GUI.enabled = providerIndex > 0;
+                var upPressed = GUILayout.Button("^");//, GUILayout.Width(30), GUILayout.ExpandWidth(false));
+                GUI.enabled = providerIndex + 1 < providerSettings.Count;
+                var downPressed = GUILayout.Button("v");//, GUILayout.Width(30), GUILayout.ExpandWidth(false));
+                GUI.enabled = true;
+
+                if (upPressed)
+                    orderChange = (providerIndex, moveUp: true);
+                if (downPressed)
+                    orderChange = (providerIndex, moveUp: false);
+
+                GUILayout.EndVertical();
+            }
+
+            private void DrawPrecisionSettings(ProviderSettings settings)
+            {
                 UnityModManager.UI.DrawIntField(
                     ref settings.precision, "Precision", style: null, GUILayout.Width(20), GUILayout.ExpandWidth(false));
                 if (settings.precision < 0)
@@ -62,37 +81,56 @@ namespace DvMod.HeadsUpDisplay
                     settings.unitSymbol = symbols[selectedIndex];
             }
 
-            private void DrawProviderSettings(IDataProvider provider)
+            private void DrawProviderSettings(ProviderSettings settings, int providerIndex)
             {
-                var label = provider.Label;
+                var label = settings.providerLabel;
+                if (!Registry.providers.TryGetValue(label, out var provider) || provider.Hidden)
+                    return;
+
+                GUILayout.BeginHorizontal("box");
+
+                DrawOrderButtons(providerIndex);
+
+                GUILayout.BeginVertical();
+                GUILayout.Space(5);
 
                 GUILayout.BeginHorizontal();
 
-                GUILayout.Label(label, GUILayout.MinWidth(150), GUILayout.ExpandWidth(false));
                 var result = GUILayout.Toggle(
-                    !disabledProviders.Contains(label), "Enable", GUILayout.MinWidth(100), GUILayout.ExpandWidth(false));
+                    !disabledProviders.Contains(label), image: null, GUILayout.Width(20), GUILayout.ExpandWidth(false));
                 if (result)
                     disabledProviders.Remove(label);
                 else
                     disabledProviders.Add(label);
 
+                GUILayout.Label(label, GUILayout.MinWidth(150), GUILayout.ExpandWidth(false));
+
                 if (provider is IQuantityProvider quantityProvider)
                 {
-                    DrawPrecisionSettings(quantityProvider);
+                    DrawPrecisionSettings(settings);
                     DrawUnitSettings(quantityProvider);
                 }
+
+                GUILayout.EndHorizontal();
+                GUILayout.EndVertical();
 
                 GUILayout.EndHorizontal();
             }
 
             private void DrawProviderSettings()
             {
-                var providers = Registry.providers.Values
-                    .Where(dp => !dp.Hidden)
-                    .OrderBy(dp => dp.Order);
+                orderChange = null;
 
-                foreach (var provider in providers)
-                    DrawProviderSettings(provider);
+                foreach (var (settings, index) in providerSettings.Select((x, i) => (x, i)))
+                    DrawProviderSettings(settings, index);
+
+                if (orderChange.HasValue)
+                {
+                    var index = orderChange.Value.providerIndex;
+                    var settings = providerSettings[index];
+                    providerSettings.RemoveAt(index);
+                    providerSettings.Insert(index + (orderChange.Value.moveUp ? -1 : 1), settings);
+                }
             }
 
             public void Draw()
@@ -105,7 +143,8 @@ namespace DvMod.HeadsUpDisplay
                 enabled = GUILayout.Toggle(enabled, "");
                 GUILayout.EndHorizontal();
 
-                DrawProviderSettings();
+                if (enabled)
+                    DrawProviderSettings();
                 GUILayout.EndVertical();
             }
 
@@ -131,6 +170,11 @@ namespace DvMod.HeadsUpDisplay
                     return units.Select(unit => unit.Symbol);
 
                 return Enumerable.Empty<string>();
+            }
+
+            public void EnsureProviderSettings(IDataProvider provider)
+            {
+                GetProviderSettings(provider);
             }
 
             public ProviderSettings GetProviderSettings(IDataProvider provider)
@@ -172,6 +216,16 @@ namespace DvMod.HeadsUpDisplay
                     return units.Find(unit => unit.Symbol == symbol);
                 }
                 return default;
+            }
+
+            public IEnumerable<IDataProvider> OrderedProviders()
+            {
+                foreach (var label in providerSettings.Select(settings => settings.providerLabel))
+                {
+                    if (Registry.providers.TryGetValue(label, out var provider)
+                        && !provider.Hidden && IsEnabled(provider))
+                        yield return provider;
+                }
             }
         }
 
