@@ -2,7 +2,7 @@
   "Id": "HeadsUpDisplay",
   "DisplayName": "Heads-up Display",
   "Author": "Zeibach",
-  "Version": "1.0.0",
+  "Version": "1.1.0",
   "LoadAfter": ["DVCustomCarLoader"],
   "AssemblyName": "HeadsUpDisplay.dll",
   "EntryMethod": "DvMod.HeadsUpDisplay.Main.Load",
