@@ -432,8 +432,8 @@ namespace DvMod.HeadsUpDisplay
             var provider = Registry.GetProvider(providerLabel);
             if (provider is IQuantityProvider quantityProvider)
             {
-                Main.settings.drivingInfoSettings.TryGetUnit(quantityProvider, out var unit);
                 var providerSettings = Main.settings.drivingInfoSettings.GetProviderSettings(quantityProvider);
+                providerSettings.TryGetUnit(quantityProvider.Dimension, out var unit);
                 return pressure => pressure.In(unit).ToString($"F{providerSettings.precision}");
             }
             return pressure => $"{pressure.Scalar:F2}";

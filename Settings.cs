@@ -30,6 +30,33 @@ namespace DvMod.HeadsUpDisplay
                 public int precision;
 
                 public override string ToString() => $"{providerLabel}: {unitSymbol}, {precision}";
+
+                public bool TryGetUnit(Dimension dimension, out Unit unit)
+                {
+                    var symbol = unitSymbol;
+                    if (symbol.Length == 0)
+                        symbol = GetDisplaySymbols(dimension).FirstOrDefault() ?? "";
+                    var maybeUnit = UnitForSymbol(dimension, symbol);
+                    if (maybeUnit == null)
+                    {
+#pragma warning disable CS8625
+                        unit = default;
+#pragma warning restore CS8625
+                        return false;
+                    }
+
+                    unit = (Unit)maybeUnit;
+                    return true;
+                }
+
+                private static Unit? UnitForSymbol(Dimension dimension, string symbol)
+                {
+                    if (UnitRegistry.Default.TryGetUnits(dimension, out var units))
+                    {
+                        return units.Find(unit => unit.Symbol == symbol);
+                    }
+                    return default;
+                }
             }
 
             private void DrawOrderButtons(int providerIndex)
@@ -187,35 +214,6 @@ namespace DvMod.HeadsUpDisplay
                     providerSettings.Add(settings);
                 }
                 return settings;
-            }
-
-            public bool TryGetUnit(IQuantityProvider provider, out Unit unit)
-            {
-                var settings = GetProviderSettings(provider);
-                var dimension = provider.Dimension;
-                var symbol = settings.unitSymbol;
-                if (symbol.Length == 0)
-                    symbol = GetDisplaySymbols(dimension).FirstOrDefault() ?? "";
-                var maybeUnit = UnitForSymbol(dimension, symbol);
-                if (maybeUnit == null)
-                {
-#pragma warning disable CS8625
-                    unit = default;
-#pragma warning restore CS8625
-                    return false;
-                }
-
-                unit = (Unit)maybeUnit;
-                return true;
-            }
-
-            private static Unit? UnitForSymbol(Dimension dimension, string symbol)
-            {
-                if (UnitRegistry.Default.TryGetUnits(dimension, out var units))
-                {
-                    return units.Find(unit => unit.Symbol == symbol);
-                }
-                return default;
             }
 
             public IEnumerable<IDataProvider> OrderedProviders()
