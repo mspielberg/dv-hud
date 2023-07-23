@@ -86,7 +86,7 @@ namespace DvMod.HeadsUpDisplay
             }
         }
 
-        private static readonly Func<TrackID, string> SubYardSelector = (TrackID id) => $"{id.yardId}-{id.subYardId}";
+        private static readonly Func<TrackID, string> SubYardSelector = (TrackID id) => id.FullDisplayID;
         private static readonly Func<TrackID, string> TrackSelector = (TrackID id) => id.TrackPartOnly;
 
         public static string DescribeJunctionBranches(Junction junction)
@@ -97,7 +97,7 @@ namespace DvMod.HeadsUpDisplay
                 return junction.selectedBranch == 0 ? "<<<" : ">>>";
 
             var selector =
-                (left.yardId != right.yardId || left.subYardId != right.subYardId) ? SubYardSelector :
+                (left.yardId != right.yardId || left.SignIDSubYardPart != right.SignIDSubYardPart) ? SubYardSelector :
                 TrackSelector;
 
             return junction.selectedBranch == 0

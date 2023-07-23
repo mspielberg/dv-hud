@@ -4,6 +4,8 @@ using static QuantitiesNet.Units;
 using System;
 using System.Linq;
 using UnityEngine;
+using DV.Simulation.Cars;
+using DV.Utils;
 
 namespace DvMod.HeadsUpDisplay
 {
@@ -41,8 +43,8 @@ namespace DvMod.HeadsUpDisplay
             if (track == null)
                 return;
             var startSpan = bogie.traveller.Span;
-            var locoDirection = PlayerManager.LastLoco == null || PlayerManager.LastLoco.GetComponent<LocoControllerBase>()?.reverser >= 0f;
-            var direction = !locoDirection ^ (bogie.trackDirection > 0);
+            var locoDirection = PlayerManager.LastLoco == null || PlayerManager.LastLoco.GetComponent<SimController>()?.controlsOverrider.Reverser.Value >= 0.5f;
+            var direction = !locoDirection ^ (bogie.TrackDirectionSign > 0);
             var currentGrade = TrackIndexer.Grade(bogie.point1) * (direction ? 1 : -1);
 
             var events = TrackFollower.FollowTrack(

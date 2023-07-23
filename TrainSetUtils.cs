@@ -16,6 +16,6 @@ namespace DvMod.HeadsUpDisplay
         public static TrainCar LastCar(TrainCar loco) => IsFacingFrontOfTrainset(loco) ? loco.trainset.lastCar : loco.trainset.firstCar;
 
         public static float OverallLength(this Trainset trainset) => trainset.cars.Sum(c => c.logicCar.length);
-        public static float TotalMass(this Trainset trainset) => trainset.cars.Sum(c => c.totalMass + CargoTypes.GetCargoMass(c.LoadedCargo, c.LoadedCargoAmount));
+        public static float TotalMass(this Trainset trainset) => trainset.cars.Sum(c => c.massController.TotalMass);
     }
 }

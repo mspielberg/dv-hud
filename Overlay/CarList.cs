@@ -8,6 +8,10 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityModManagerNet;
+using DV.ThingTypes;
+using DV.Utils;
+using DV.Simulation.Cars;
+using DV;
 
 namespace DvMod.HeadsUpDisplay
 {
@@ -157,7 +161,7 @@ namespace DvMod.HeadsUpDisplay
 
             var brakeModes = new SortedSet<char>();
 
-            if (!CarTypes.IsAnyLocomotiveOrTender(firstCar.carType))
+            if (!CarTypes.IsAnyLocomotiveOrTender(firstCar.carLivery))
                 brakeModes.Add(GetTripleValveState(firstCar));
 
             int i = 0;
@@ -165,7 +169,7 @@ namespace DvMod.HeadsUpDisplay
             {
                 float carStress = car.GetComponent<TrainStress>().derailBuildUp;
                 float? couplerStress = GetCouplerStress(cars, index);
-                Job? job = JobChainController.GetJobOfCar(car);
+                Job? job = SingletonBehaviour<JobsManager>.Instance.GetJobOfCar(car);
                 Track? nextDestination = GetNextDestinationTrack(job, car.logicCar);
                 BrakeSystem brakeSystem = car.brakeSystem;
                 Pressure pipePressure = new Pressure(brakeSystem.brakePipePressure, QuantitiesNet.Units.Bar);
@@ -205,7 +209,7 @@ namespace DvMod.HeadsUpDisplay
                     maxBrakeFactor = brakeSystem.brakingFactor;
                     brakeModes.Clear();
 
-                    if (!CarTypes.IsAnyLocomotiveOrTender(car.carType))
+                    if (!CarTypes.IsAnyLocomotiveOrTender(car.carLivery))
                         brakeModes.Add(GetTripleValveState(car));
                 }
                 else
@@ -224,7 +228,7 @@ namespace DvMod.HeadsUpDisplay
                     if (brakeSystem.brakingFactor > maxBrakeFactor)
                         maxBrakeFactor = brakeSystem.brakingFactor;
 
-                    if (!CarTypes.IsAnyLocomotiveOrTender(car.carType))
+                    if (!CarTypes.IsAnyLocomotiveOrTender(car.carLivery))
                         brakeModes.Add(GetTripleValveState(car));
                 }
                 i++;
@@ -310,25 +314,20 @@ namespace DvMod.HeadsUpDisplay
             var isMultipleUnitCapable = car.TryGetComponent<MultipleUnitModule>(out var muModule);
             var frontMUDisconnected = isMultipleUnitCapable
                 && car.frontCoupler.coupledTo?.train?.carType == car.carType
-                && !muModule.frontCable.IsConnected;
+                && !muModule.FrontCable.IsConnected;
             var rearMUDisconnected = isMultipleUnitCapable
                 && car.rearCoupler.coupledTo?.train?.carType == car.carType
-                && !muModule.rearCable.IsConnected;
+                && !muModule.RearCable.IsConnected;
             var hasDisconnectedMUCable = frontMUDisconnected || rearMUDisconnected;
 
-            var isRunning = car.carType switch
-            {
-                TrainCarType.LocoShunter => car.GetComponent<LocoControllerShunter>().GetEngineRunning(),
-                TrainCarType.LocoDiesel => car.GetComponent<LocoControllerDiesel>().GetEngineRunning(),
-                _ => true,
-            };
+            var isRunning = car.GetComponent<SimController>()?.controlsOverrider.EngineOnReader.IsOn ?? true;
 
             return Color.HSVToRGB(HueOrange, hasDisconnectedMUCable ? 1 : 0, isRunning ? 1 : 0.8f);
         }
 
         private static void DrawCarStress(IEnumerable<CarGroup> groups)
         {
-            var derailThreshold = SimManager.instance.derailBuildUpThreshold;
+            var derailThreshold = Globals.G.GameParams.DerailBuildUpThreshold;
 
             GUILayout.Space(Overlay.ColumnSpacing);
             GUILayout.BeginVertical();
