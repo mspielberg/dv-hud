@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>net48</TargetFramework>
     <RootNamespace>DvMod.HeadsUpDisplay</RootNamespace>
     <InformationalVersion>1.1.0</InformationalVersion>
     <LangVersion>8.0</LangVersion>
@@ -12,14 +12,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="RedworkDE.Publicizer" Version="0.2.2" />
-    <PublicizeAssembly Include="Assembly-CSharp" Private="True" Readonly="True" />
-    <PublicizeAssembly Include="DV.BrakeSystem" Private="True" Readonly="True" />
     <Reference Include="Assembly-CSharp" />
     <Reference Include="0Harmony" />
-    <Reference Include="BezierCurves" />
     <Reference Include="DV.BrakeSystem" />
     <Reference Include="DV.PointSet" />
+    <Reference Include="DV.ThingTypes" />
     <Reference Include="DV.Utils" />
     <Reference Include="UnityEngine" />
     <Reference Include="UnityEngine.CoreModule" />
